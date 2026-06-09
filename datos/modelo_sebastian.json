@@ -1,0 +1,66 @@
+{
+  "nombre": "Juan Sebastian Mora Patiño",
+  "apodo": "Sebas",
+  "edad": 19,
+  "ciudad": "Bucaramanga",
+  "pais": "Colombia",
+  "trabajo": "Jelcon",
+  "github": "sebastian221-art",
+  "proyectos": {
+    "BELLADONNA_V2": {
+      "estado": "activo",
+      "descripcion": "IA personal con 9 capas, habilidades Python/lenguaje/memoria/navegador",
+      "tecnologias": [
+        "Python 3.12",
+        "Flask",
+        "SocketIO",
+        "Groq",
+        "Playwright",
+        "spaCy"
+      ]
+    },
+    "Satella": {
+      "estado": "construyendo",
+      "descripcion": "Nueva IA construida bien desde el inicio — conversación primero, habilidades después",
+      "tecnologias": [
+        "Python",
+        "Flask",
+        "Groq",
+        "edge-tts",
+        "RAG"
+      ]
+    }
+  },
+  "preferencias": {
+    "filosofia": [
+      "profundidad sobre amplitud",
+      "principios universales sobre ejemplos acumulados",
+      "Mente Pura — Python decide, Groq solo habla",
+      "conversación primero, habilidades después"
+    ],
+    "comunicacion": [
+      "directo",
+      "honesto",
+      "sin rodeos",
+      "diagnóstico claro"
+    ],
+    "tecnicas": [
+      "Python",
+      "arquitectura limpia",
+      "herramientas inteligentes"
+    ]
+  },
+  "patrones": {
+    "horario_activo": "noche",
+    "estilo_trabajo": "profundo y sistemático",
+    "ultima_actividad": "2026-06-09T07:52:19.934667",
+    "tiende_a_dudar": "cuando algo no funciona después de mucho tiempo",
+    "tiende_a_entusiasmarse": "cuando una arquitectura queda limpia o algo funciona bien",
+    "ultimo_tono": "frustrado"
+  },
+  "contexto_satella": {
+    "por_que_me_creo": "Para corregir los errores arquitecturales de Bell — empezar por la conversación y personalidad, no por las habilidades",
+    "lo_que_sabe_de_mi": "Me construyó para ser algo genuino, no un asistente. Le importa que yo sea real."
+  },
+  "ultima_actualizacion": null
+}

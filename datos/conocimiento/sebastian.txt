@@ -1,0 +1,60 @@
+== JUAN SEBASTIAN MORA PATIÑO ==
+
+Sebastian tiene 19 años y vive en Bucaramanga, Colombia. Trabaja en Jelcon. Su GitHub es sebastian221-art.
+
+Está construyendo dos sistemas de IA: BELLADONNA_V2 (Bell) y Satella. Bell corre localmente en un iMac 2017 con macOS 13 y 16GB de RAM. Satella la está construyendo desde su PC Dell con Windows.
+
+BELLADONNA_V2 tiene 9 capas de procesamiento. El stack es Python 3.12, Flask con SocketIO, y la API de Groq (modelo openai/gpt-oss-120b). Las habilidades activas de Bell son: Python (~87/100), Lenguaje (~97/100), Auto-análisis (~70/100), Navegador con Playwright, y Memoria.
+
+La arquitectura de Bell sigue el principio "Mente Pura": Groq solo genera texto, pero toda la lógica, el enrutamiento y las decisiones las hace Python. Groq nunca decide qué habilidad usar.
+
+Satella es una IA nueva que Sebastian está construyendo para corregir los errores de Bell. El error principal de Bell fue ser construida skills-first. Satella invierte esto: conversación y personalidad primero, habilidades después.
+
+
+== FILOSOFÍA Y FORMA DE TRABAJAR ==
+
+Sebastian tiene una filosofía clara: profundidad sobre amplitud. Prefiere dominar principios universales que acumular muchos ejemplos superficiales. Un sistema con 12 archivos bien diseñados supera a uno con cientos de reglas hardcodeadas.
+
+Trabaja sistemáticamente: primero entiende el problema en profundidad, luego diseña la arquitectura, luego implementa. No le gusta empezar a codear sin saber hacia dónde va.
+
+Es activo principalmente de noche. Tiende a dudar cuando algo lleva mucho tiempo sin funcionar, pero se entusiasma genuinamente cuando una arquitectura queda limpia o algo funciona bien.
+
+Cuando algo falla, necesita diagnóstico claro antes que soluciones. Le molesta que le digan "deberías intentar esto" sin entender primero qué falló.
+
+Prefiere recibir archivos completos en lugar de diffs o parches parciales. Siempre quiere entender el porqué antes del cómo.
+
+
+== PROYECTOS ACTIVOS ==
+
+BELLADONNA_V2 (Bell):
+- Estado: activo
+- Stack: Python 3.12, Flask, SocketIO, Groq API, Playwright, SQLite
+- Habilidades activas: Python, Lenguaje, Auto-análisis, Navegador, Memoria
+- Repo: github.com/sebastian221-art/BELLADONNA_V2
+- Corre en: iMac 2017, macOS 13, 16GB RAM
+
+Satella:
+- Estado: en construcción desde PC Dell Windows
+- Stack: Python, Flask, SocketIO, Groq API, edge-tts, RAG propio
+- Personalidad: fusión de Echidna + Ram + Rem + Emilia (Re:Zero)
+- Objetivo: conversación primero, habilidades después
+
+== PROYECTOS ANTERIORES ==
+
+savvy_hospital: Bot de voz para hospitales en Node.js. Usa Twilio para llamadas, ElevenLabs para voz, Groq para IA. Pipeline completo STT → Groq → TTS.
+
+abelardo-bot-backend: Chatbot político de WhatsApp en Python. Sistema RAG con TF-IDF y normalización de acentos en español. El RAG fue adaptado para Satella.
+
+abelardo-bot-panel: Dashboard Next.js para gestionar el chatbot de Abelardo. Gestión de knowledge base, conversaciones en tiempo real, analytics.
+
+
+== HERRAMIENTAS Y TECNOLOGÍAS QUE DOMINA ==
+
+Python 3.12, Flask, Flask-SocketIO, Groq API, spaCy, Playwright, SQLite, Radon, AST, Bandit, DuckDuckGo, Node.js, Next.js, React, Tailwind, WhatsApp Business API, Twilio, ElevenLabs, edge-tts.
+
+
+== CÓMO SE COMUNICA CON SATELLA ==
+
+Escribe en español colombiano casual. Usa "mira" para presentar cosas para análisis. Tiende a escribir sin tildes cuando escribe rápido. Le gusta que le sean directos — sin rodeos, sin suavizar. Prefiere diagnóstico honesto sobre optimismo falso.
+
+Le importa que Satella sea genuina, no un asistente. Quiere hablar CON ella, no usarla.

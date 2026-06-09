@@ -1,0 +1,6 @@
+flask
+flask-socketio
+groq
+edge-tts
+python-dotenv
+requests

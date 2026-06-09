@@ -1,0 +1,158 @@
+"""
+Servidor Flask + SocketIO de Satella.
+"""
+import logging
+import threading
+import time
+import os
+from flask import Flask, render_template_string
+from flask_socketio import SocketIO, emit
+
+from config import (HOST, PORT, VOZ_HABILITADA, MINUTOS_SILENCIO_INICIACION, SATELLA_ROOT)
+from nucleo import memoria, rag
+from nucleo.satella import procesar_mensaje, iniciar_conversacion, cerrar_sesion
+
+log = logging.getLogger("satella.servidor")
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'satella_secret_2024'
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode='threading',
+    max_http_buffer_size=10 * 1024 * 1024
+)
+
+# Estado global como dict mutable — evita problemas con global en threads
+_estado = {
+    "ultimo_mensaje_ts": 0.0,
+    "cliente_conectado": False,
+    "voz_activa": VOZ_HABILITADA,
+    "saludo_enviado": False,   # evita doble saludo en reconexión rápida
+}
+
+FRONTEND_PATH = os.path.join(SATELLA_ROOT, "interfaz", "frontend", "satella.html")
+
+
+@app.route('/')
+def index():
+    with open(FRONTEND_PATH, encoding='utf-8') as f:
+        return render_template_string(f.read())
+
+
+@socketio.on('connect')
+def on_connect():
+    _estado["cliente_conectado"] = True
+    _estado["ultimo_mensaje_ts"] = time.time()
+    log.info("Cliente conectado")
+
+    # Solo enviar saludo si no se envió ya en los últimos 10 segundos
+    if _estado["saludo_enviado"]:
+        return
+
+    _estado["saludo_enviado"] = True
+
+    def saludo_inicial():
+        time.sleep(1.5)
+        try:
+            resultado = iniciar_conversacion(voz_habilitada=_estado["voz_activa"])
+            texto = resultado['respuesta']
+            log.info(f"[SALUDO] ({len(texto)} chars) {texto}")
+            socketio.emit('satella_responde', {
+                'texto': texto,
+                'audio': resultado.get('audio_b64'),
+                'iniciacion': True,
+            })
+        except Exception as e:
+            log.error(f"Error saludo inicial: {e}")
+
+    threading.Thread(target=saludo_inicial, daemon=True).start()
+
+
+@socketio.on('disconnect')
+def on_disconnect():
+    _estado["cliente_conectado"] = False
+    log.info("Cliente desconectado — cerrando sesión")
+    # Reset saludo después de 15 segundos (si reconecta antes, no manda otro)
+    def reset_saludo():
+        time.sleep(15)
+        _estado["saludo_enviado"] = False
+    threading.Thread(target=reset_saludo, daemon=True).start()
+    try:
+        cerrar_sesion()
+    except Exception as e:
+        log.error(f"Error cerrando sesión: {e}")
+
+
+@socketio.on('mensaje')
+def on_mensaje(data):
+    _estado["ultimo_mensaje_ts"] = time.time()
+
+    texto_user = data.get('texto', '').strip()
+    if not texto_user:
+        return
+
+    log.info(f"[USER] {texto_user}")
+    emit('satella_pensando', {'estado': True})
+
+    try:
+        resultado = procesar_mensaje(texto_user, voz_habilitada=_estado["voz_activa"])
+        respuesta = resultado['respuesta']
+        log.info(f"[SATELLA] ({len(respuesta)} chars) {respuesta}")
+        emit('satella_responde', {
+            'texto': respuesta,
+            'audio': resultado.get('audio_b64'),
+            'tono': resultado.get('tono', 'normal'),
+        })
+    except Exception as e:
+        log.error(f"Error procesando mensaje: {e}")
+        emit('satella_responde', {
+            'texto': 'Hay un problema técnico. Mira la consola.',
+            'audio': None,
+        })
+    finally:
+        emit('satella_pensando', {'estado': False})
+
+
+@socketio.on('toggle_voz')
+def on_toggle_voz(data):
+    _estado["voz_activa"] = data.get('activa', True)
+    log.info(f"Voz {'activada' if _estado['voz_activa'] else 'desactivada'}")
+    emit('voz_estado', {'activa': _estado["voz_activa"]})
+
+
+@socketio.on('cerrar_sesion')
+def on_cerrar_sesion():
+    resumen = cerrar_sesion()
+    emit('sesion_cerrada', {'resumen': resumen})
+
+
+def _timer_iniciacion():
+    SEGUNDOS_LIMITE = MINUTOS_SILENCIO_INICIACION * 60
+    while True:
+        time.sleep(30)
+        if not _estado["cliente_conectado"]:
+            continue
+        if not memoria.sesion_activa():
+            continue
+        silencio = time.time() - _estado["ultimo_mensaje_ts"]
+        if silencio >= SEGUNDOS_LIMITE:
+            try:
+                log.info(f"Timer: {silencio:.0f}s de silencio — Satella inicia")
+                resultado = iniciar_conversacion(voz_habilitada=_estado["voz_activa"])
+                texto = resultado['respuesta']
+                log.info(f"[INICIACION] ({len(texto)} chars) {texto}")
+                socketio.emit('satella_responde', {
+                    'texto': texto,
+                    'audio': resultado.get('audio_b64'),
+                    'iniciacion': True,
+                })
+                _estado["ultimo_mensaje_ts"] = time.time()
+            except Exception as e:
+                log.error(f"Timer iniciación error: {e}")
+
+
+def iniciar():
+    threading.Thread(target=_timer_iniciacion, daemon=True).start()
+    log.info(f"Satella corriendo en http://localhost:{PORT}")
+    socketio.run(app, host=HOST, port=PORT, debug=False, allow_unsafe_werkzeug=True)

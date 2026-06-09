@@ -1,0 +1,63 @@
+# ── Entorno virtual ──────────────────────────────────────────────────────────
+venv/
+env/
+.venv/
+ENV/
+
+# ── Python cache ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+
+# ── Claves y config sensible ─────────────────────────────────────────────────
+.env
+.env.*
+secrets.py
+# config.py contiene GROQ_API_KEY — excluirlo del repo
+config.py
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+satella.log
+
+# ── Edge-TTS caché de audio ──────────────────────────────────────────────────
+*.mp3
+*.wav
+*.m4a
+audio_cache/
+tts_cache/
+
+# ── Datos personales / conversaciones ────────────────────────────────────────
+# Descomenta si no querés subir tu historial personal:
+# datos/episodios.json
+# datos/modelo_sebastian.json
+# datos/datos_entrenamiento.json
+
+# ── Archivos temporales ───────────────────────────────────────────────────────
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDEs ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ── Pytest / coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── Build / dist ─────────────────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
