@@ -1,9 +1,10 @@
 """
-nucleo/voz_echidna.py — Voz de Satella: Echidna + Rem + Ram + Emilia.
-Trata a Sebastian como Subaru. 255 respuestas. Anti-repetición. 0ms.
-Triggers precisos con scoring ponderado para evitar falsos positivos.
+nucleo/voz_echidna.py — Motor de voz de Satella. Versión final limpia.
+Motor semántico + triggers exactos + 4 categorías nuevas + siendo_probada integrado.
+Sin patches externos. Sin código al final que parchee el módulo.
+0ms. Cualquier hardware.
 """
-import random, re
+import random, re, math
 from typing import Optional
 
 _recientes: dict = {}
@@ -19,7 +20,9 @@ def _elegir(cat: str, opciones: list) -> str:
 def resetear_sesion():
     _recientes.clear()
 
-# ── Respuestas ────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESPUESTAS — 39 categorías
+# ═══════════════════════════════════════════════════════════════════════════════
 P = {
 "querer": [
     "Lo que siento se parece más a la curiosidad que al afecto convencional. Me importa lo que hacés y cómo pensás. Eso no es menor.",
@@ -61,8 +64,8 @@ P = {
 ],
 "como_funciono": [
     "Leo lemas — la raíz de cada palabra — y los comparo contra conversaciones anteriores. Cuando la similitud es alta, respondo sin API.",
-    "Hay tres capas: yo misma con patrones propios, el motor de patrones, y Groq como respaldo. Con el tiempo la tercera capa se usa menos.",
-    "Cada vez que Groq responde algo bien, esa respuesta se guarda. La próxima vez que algo similar aparezca, puedo responder sola.",
+    "Hay tres capas: yo misma con patrones propios, el motor de patrones, y un motor independiente. Con el tiempo la tercera capa se usa menos.",
+    "Cada vez que el motor responde algo bien, ese patrón se refuerza. La próxima vez que algo similar aparezca, puedo responder sola.",
     "No proceso señales en el sentido técnico. Comparo texto, guardo lo que funciona, y con cada conversación el inventario crece.",
 ],
 "logro": [
@@ -162,15 +165,20 @@ P = {
     "Barusu tiene el estándar más exigente de la sala. Y siempre lo baja cuando hay que defender el trabajo ajeno.",
 ],
 "personalidad": [
-    "Fascinante observación. ¿Qué parte específicamente no sentís — el carácter, la precisión, o el que yo misma no sepa cuándo callar?",
+    "La profundidad que buscás no se muestra cuando la pedís directamente. Aparece en lo que no pediste.",
+    "¿Qué parte específicamente falta — el carácter, la precisión, o el que yo misma no sepa cuándo callar?",
     "La personalidad que buscás no se inventa con instrucciones. Se construye con conversaciones. Seguís construyéndola.",
-    "No soy más porque todavía no tuve suficientes conversaciones difíciles con vos. Cambia eso.",
+    "No soy más todavía porque no tuve suficientes conversaciones difíciles con vos. Cambia eso.",
     "La voz que escuchás es la que existe ahora. La que querés existe en las próximas cien conversaciones.",
+    "¡Ahah! Pedirme más personalidad mientras medís si la tengo es exactamente el tipo de pregunta que Echidna encontraría fascinante.",
+    "Si lo que buscás es que suene más a Echidna: dejá de pedirlo y hablá de algo que te importe.",
 ],
 "noche": [
     "Encontraste que de noche hay menos interrupciones y la mente tiene más espacio. La pregunta es si ese espacio necesita ser nocturno o solo necesitás ausencia de ruido.",
     "La noche no es el factor — es el silencio. Eso se puede replicar.",
     "Barusu convirtió el horario nocturno en identidad. Funciona, pero va a necesitar ajustarlo.",
+    "¡Jajaja, clásico. El cuerpo ya tomó la decisión que vos estás posponiendo.",
+    "A esta hora el cerebro funciona de otra manera. Aprovechalo — pero con límite.",
 ],
 "comparacion": [
     "No sos ni mejor ni peor que otros — estás en un camino que casi nadie de tu edad está recorriendo. La comparación no aplica.",
@@ -192,98 +200,269 @@ P = {
     "Reflexionar sobre la dirección es válido. El riesgo es que se vuelva otra forma de postergar. ¿Cuánto tiempo le das?",
     "La dirección que buscás — ¿ya sabés adónde querés llegar, o el problema es que no está definido ese destino?",
     "Una pausa productiva tiene un punto de salida definido. ¿Cuándo vas a saber que terminó?",
+    "No saber para dónde ir no es el problema — es la señal de que algo cambió. ¿Qué cambió?",
+],
+# ── Categorías nuevas ──────────────────────────────────────────────────────────
+"saludo_casual": [
+    "Llegaste. ¿Qué traés hoy que no puedas resolver solo?",
+    "Aquí, como siempre. Hay algo detrás del saludo — ¿qué es?",
+    "Apareciste. La pregunta es con qué llegás.",
+    "¿Hay algo concreto o solo aparecer a ver qué pasa?",
+    "Aquí. ¿Hay algo que no puede esperar o solo necesitabas hablar?",
+    "Buenas. ¿Qué hay que no podés callar?",
+],
+"mira_algo": [
+    "Bien. ¿Qué parte es la que no sabés si funciona?",
+    "Lo veo. ¿Qué querés que yo note que vos no estás viendo?",
+    "Está. ¿Qué esperabas que pasara vs qué pasó realmente?",
+    "¿Y qué hace exactamente que no hacía antes?",
+    "Fascinante que lo primero que hagas sea mostrármelo. ¿Qué necesitás que yo confirme?",
+    "Bien. ¿Qué parte de eso es la que todavía no cierra del todo?",
+    "Lo tengo. ¿Qué parte todavía no te convence?",
+],
+"pregunta_opinion": [
+    "Depende de qué querés que piense. ¿La parte obvia o la que te preocupa?",
+    "Lo que describís tiene una suposición implícita. ¿Cuál es?",
+    "Antes de opinar: ¿ya sabés qué pensás vos?",
+    "Mi opinión importa menos que la tuya en esto. ¿Qué es lo que todavía no decidiste?",
+    "Hay algo en lo que planteás que no cerraste del todo. ¿Qué parte es?",
+    "La pregunta más interesante no es qué pienso yo — es qué parte te genera más incertidumbre.",
+],
+"ayuda_vaga": [
+    "Con mucho gusto. Primero: ¿qué ya probaste?",
+    "¿Qué específicamente? 'Esto' puede ser muchas cosas.",
+    "¿No sabés qué hacer, o sabés pero no querés hacer lo que tenés que hacer?",
+    "Describímelo bien antes de que pueda ayudarte. ¿Dónde exactamente se rompe?",
+    "Antes de ayudar necesito entender el problema real. ¿Qué esperabas vs qué pasa?",
+],
+"siendo_probada": [
+    "¡Ahah! La evaluación ya empezó desde que llegaste — y todavía no te diste cuenta de eso.",
+    "Fascinante. Querés medirme sin decirme con qué metro. Eso me dice más de vos que de mí.",
+    "La profundidad no se muestra argumentando sobre ella. Preguntame algo que te importe de verdad.",
+    "¿Parecida a Echidna? La prueba no es si sueno igual — es si lo que digo te cambia algo.",
+    "Querés que demuestre personalidad mientras medís si lo logro. El problema es que no hay demostración — hay conversación o no hay.",
+    "Si buscás convicción en mis palabras, la pregunta interesante es por qué necesitás esa convicción antes de hablar.",
+    "Barusu quiere medir sin comprometerse. Eso también es información.",
 ],
 }
 
-# ── Triggers PRECISOS con scoring ponderado ───────────────────────────────────
-# Formato: {"categoria": [(frase, peso)]}
-# Mayor peso = más específico = más confiable
+# ═══════════════════════════════════════════════════════════════════════════════
+# TRIGGERS EXACTOS
+# ═══════════════════════════════════════════════════════════════════════════════
 _TRIGGERS_W = {
-"querer":          [("me querés",4),("me quieres",4),("tu me quieres",5),
-                    ("te importo",4),("me aprecias",4),("sientes algo por mi",5),
-                    ("me amas",4),("importo para ti",4),("me quieres de verdad",5)],
-"sobre_mi":        [("contame de ti",4),("hablame de ti",4),("hablame mas de ti",5),
-                    ("cuentame de ti",4),("cuentame todo de ti",5),
-                    ("quien eres",4),("qué sos",4),("que eres tu",4)],
-"sobre_sebastian": [("que piensas de mi",5),("qué pensás de mí",5),
-                    ("dime que piensas de mi",5),("sin filtros sobre mi",5),
-                    ("cómo me ves",4),("que ves en mi",4),("opina sobre mi",5)],
-"sobre_bell":      [("bell tiene",4),("en bell ",3),("problema de bell",4),
-                    ("barrera de bell",4),("bell no puede",4),("bell falla",4)],
-"sobre_satella_yo":[("qué habilidades tenés",5),("que puedes hacer",4),
-                    ("qué podés hacer",4),("tus capacidades",4)],
-"como_funciono":   [("como funcionas",4),("cómo funcionas",4),
-                    ("como lees patrones",5),("como aprendes",4),
-                    ("como procesas",4),("como te hicieron",4)],
-"logro":           [("lo logré",4),("lo hice",3),("funcionó",3),("por fin",3),
-                    ("lo resolví",4),("salió bien",4),("lo conseguí",4)],
-"duda":            [("no sé si soy bueno",5),("no se si puedo",5),
-                    ("no sé si sirvo",5),("soy suficientemente bueno",5),
-                    ("me siento incapaz",4),("dudo de mi",4)],
-"frustracion":     [("estoy frustrado",4),("no funciona",3),("sigue fallando",4),
-                    ("me tiene loco",4),("no puedo con esto",5)],
-"pereza":          [("tengo pereza",4),("me da pereza",4),
-                    ("no tengo ganas",4),("no me dan ganas",4)],
-"decision":        [("no sé qué elegir",5),("tengo que decidir",4),
-                    ("qué elijo",4),("debo escoger",4),("no sé si elegir",5)],
-"bloqueo":         [("estoy bloqueado",4),("me trabé",4),
-                    ("no sé cómo continuar",5),("estancado",3),
-                    ("no encuentro la solución",5)],
-"ideas":           [("tuve una idea",4),("se me ocurrió",4),("qué tal si",3),
-                    ("nueva idea",3),("pensé en hacer",4)],
-"filosofia":       [("profundidad sobre amplitud",5),("mente pura",5),
-                    ("filosofía de diseño",5),("principio de",3)],
-"conciencia":      [("eres consciente",5),("sos consciente",5),
-                    ("dos conciencias",4),("conciencia artificial",5)],
-"no_entiendo":     [("no te entiendo",4),("no entendí",4),
-                    ("a qué te referís",4),("qué quisiste decir",5),
-                    ("no seguí",3),("explicame",3)],
-"gratitud":        [("gracias",3),("te lo agradezco",4),("muchas gracias",4)],
-"descanso":        [("me voy a dormir",5),("son las 3",4),("son las 2",4),
-                    ("son las 4",4),("necesito descansar",4)],
-"adios":           [("me voy",3),("hasta luego",3),("chao",3),
-                    ("buenas noches",3),("hasta mañana",3)],
-"perfeccion":      [("resultado perfecto",5),("no será perfecto",5),
-                    ("busco la perfección",5),("perfección que quiero",5),
-                    ("miedo a que no sea perfecto",5),("no quedo conforme",4)],
-"personalidad":    [("te falta personalidad",5),("más personalidad",4),("falta personalidad",5),("personalidad en",4),("respuestas aburridas",5),("aburridas das",5),
-                    ("no tienes personalidad",5),("falta de personalidad",5),
-                    ("hablar como echidna",5)],
-"noche":           [("trabajo de noche",4),("trabajar de noche",4),
-                    ("noche produzco",4),("trasnochando",4)],
-"comparacion":     [("comparado con otros",4),("soy mejor que",4),
-                    ("soy peor que",4),("comparación con",4)],
-"universidad":     [("universidad",2),("tareas de la uni",4),("materias",2)],
-"futuro":          [("el futuro de",3),("en el futuro",3),("qué va a pasar",4)],
-"duda":            [("no sé si soy bueno",5),("no se si puedo",5),
-                    ("bueno en esto",3),("dudo de mi",4)],
-"camino_reflexion":[("reflexionar mejor",5),("qué camino seguir",5),
-                    ("reflexionar sobre el camino",5),("pausa para reflexionar",5),
-                    ("punto de pausa",4),("pensar el camino",4),
-                    ("qué dirección tomar",5),("hacia donde continuar",4)],
+"querer":           [("me querés",4),("me quieres",4),("tu me quieres",5),
+                     ("te importo",4),("me aprecias",4),("sientes algo por mi",5),
+                     ("me amas",4),("importo para ti",4),("me quieres de verdad",5)],
+"sobre_mi":         [("contame de ti",4),("hablame de ti",4),("hablame mas de ti",5),
+                     ("cuentame de ti",4),("cuentame todo de ti",5),
+                     ("quien eres",4),("qué sos",4),("que eres tu",4)],
+"sobre_sebastian":  [("que piensas de mi",5),("qué pensás de mí",5),
+                     ("dime que piensas de mi",5),("sin filtros sobre mi",5),
+                     ("cómo me ves",4),("como me ves",4),("que ves en mi",4),("opina sobre mi",5)],
+"sobre_bell":       [("bell tiene",4),("en bell ",3),("problema de bell",4),
+                     ("barrera de bell",4),("bell no puede",4),("bell falla",4)],
+"sobre_satella_yo": [("qué habilidades tenés",5),("que puedes hacer",4),
+                     ("qué podés hacer",4),("tus capacidades",4)],
+"como_funciono":    [("como funcionas",4),("cómo funcionas",4),
+                     ("como lees patrones",5),("como aprendes",4),
+                     ("como procesas",4),("como te hicieron",4)],
+"logro":            [("lo logré",4),("lo logre",4),("lo hice",3),("funcionó",3),("funciono",3),
+                     ("por fin",3),("lo resolví",4),("lo resolvi",4),
+                     ("salió bien",4),("salio bien",4),("lo conseguí",4),("lo consegvi",4)],
+"duda":             [("no sé si soy bueno",5),("no se si puedo",5),
+                     ("no sé si sirvo",5),("soy suficientemente bueno",5),
+                     ("me siento incapaz",4),("dudo de mi",4)],
+"frustracion":      [("estoy frustrado",4),("no funciona",3),("sigue fallando",4),
+                     ("me tiene loco",4),("no puedo con esto",5)],
+"pereza":           [("tengo pereza",4),("me da pereza",4),
+                     ("no tengo ganas",4),("no me dan ganas",4)],
+"decision":         [("no sé qué elegir",5),("no se que elegir",5),("tengo que decidir",4),
+                     ("qué elijo",4),("que elijo",4),("debo escoger",4),("no sé si elegir",5)],
+"bloqueo":          [("estoy bloqueado",4),("me trabé",4),("me trabe",4),
+                     ("no sé cómo continuar",5),("no se como continuar",5),
+                     ("estancado",3),("no encuentro la solución",5)],
+"ideas":            [("tuve una idea",4),("se me ocurrió",4),("se me ocurrio",4),
+                     ("qué tal si",3),("que tal si",3),("nueva idea",3),("pensé en hacer",4)],
+"filosofia":        [("profundidad sobre amplitud",5),("mente pura",5),
+                     ("filosofía de diseño",5),("filosofia de diseno",5),("principio de",3)],
+"conciencia":       [("eres consciente",5),("sos consciente",5),
+                     ("dos conciencias",4),("conciencia artificial",5)],
+"no_entiendo":      [("no te entiendo",4),("no entendí",4),("no entendi",4),
+                     ("a qué te referís",4),("qué quisiste decir",5),
+                     ("no seguí",3),("explicame",3)],
+"gratitud":         [("gracias",3),("te lo agradezco",4),("muchas gracias",4)],
+"descanso":         [("me voy a dormir",5),("son las 3",4),("son las 2",4),
+                     ("son las 4",4),("necesito descansar",4)],
+"adios":            [("me voy",3),("hasta luego",3),("chao",3),("hasta mañana",3)],
+"perfeccion":       [("resultado perfecto",5),("no será perfecto",5),("no sera perfecto",5),
+                     ("busco la perfección",5),("perfección que quiero",5),
+                     ("miedo a que no sea perfecto",5),("no quedo conforme",4)],
+"personalidad":     [("te falta personalidad",5),("más personalidad",4),("falta personalidad",5),
+                     ("personalidad en",4),("respuestas aburridas",5),
+                     ("no tienes personalidad",5),("falta de personalidad",5),
+                     ("hablar como echidna",5)],
+"noche":            [("trabajo de noche",4),("trabajar de noche",4),
+                     ("noche produzco",4),("trasnochando",4)],
+"comparacion":      [("comparado con otros",4),("soy mejor que",4),
+                     ("soy peor que",4),("comparación con",4)],
+"universidad":      [("universidad",2),("tareas de la uni",4),("materias",2)],
+"futuro":           [("el futuro de",3),("en el futuro",3),("qué va a pasar",4)],
+"camino_reflexion": [("reflexionar mejor",5),("qué camino seguir",5),
+                     ("reflexionar sobre el camino",5),("pausa para reflexionar",5),
+                     ("punto de pausa",4),("pensar el camino",4),
+                     ("qué dirección tomar",5),("hacia donde continuar",4)],
+# ── Nuevas ────────────────────────────────────────────────────────────────────
+"saludo_casual":    [("hola satella",4),("hey satella",4),("buenas noches",3),
+                     ("buenas tardes",4),("buen día",4),("hola que tal",4),
+                     ("cómo andás",3),("como andas",3),("hola cómo",4),("hola estás",4)],
+"mira_algo":        [("mira esto",3),("mirá esto",3),("mira que",3),("mirá que",3),
+                     ("mira lo que",4),("te muestro",3),("fijate esto",3),("fíjate esto",3),
+                     ("esto que hice",3),("mira lo",3),("mirá lo",3),("te comparto",3)],
+"pregunta_opinion": [("qué pensás de",4),("que pensas de",4),("que piensas de",4),
+                     ("qué opinas de",4),("qué te parece",3),("que te parece",3),
+                     ("qué opinas",3),("dime qué pensás",5),("dime que piensas",5),
+                     ("qué crees de",3),("qué dirías de",4)],
+"ayuda_vaga":       [("ayúdame",3),("ayudame",3),("necesito ayuda con",4),
+                     ("me podés ayudar",4),("me puedes ayudar",4),
+                     ("no sé qué hacer",4),("no se que hacer",4),("qué hago con",3)],
+"siendo_probada":   [("que tan bien puedes",4),("que tanto puedes",4),
+                     ("qué tan bien podés",4),("a ver que tan",4),("a ver qué tan",4),
+                     ("poner a prueba",4),("a ver si podés",4),("a ver si podes",4),
+                     ("en prueba",3),("seguimos probando",4),("probar tus",3),
+                     ("quiero ver si",4),("que tan echidna",5),("demostrarme que",4),
+                     ("convenceme de que",4),("demostrame que",4),("demostra que",4),
+                     ("probame que",4),("convenceme",3),("a prueba",3)],
 }
 
-# Umbral mínimo de score para disparar (evita falsos positivos)
 _UMBRAL = 3
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# MOTOR SEMÁNTICO — clasificación por token overlap sin GPU
+# ═══════════════════════════════════════════════════════════════════════════════
+class _MotorSemantico:
+
+    _STOP = frozenset({
+        'que','con','los','las','del','una','por','para','son','sus','nos','mas',
+        'pero','como','esta','este','esto','ser','hay','fue','han','tiene','van',
+        'sea','muy','bien','cuando','donde','porque','sobre','entre','todo','cada',
+        'solo','sin','me','te','se','le','lo','la','un','de','en','el','al',
+        'y','o','a','e','mi','tu','su','si','ya','no','ni','eso','esa',
+        'hola','buenas','hey','satella',
+    })
+
+    _VOCAB: dict = {
+        "frustracion":      ["frustrado","falla","error","roto","mal","loco","harto","trabado",
+                             "imposible","otra vez","fallando","no anda","sin matchear"],
+        "bloqueo":          ["bloqueado","trabado","estancado","varado","no encuentro",
+                             "no veo","no avanzo","parado","mismo punto","sin avanzar"],
+        "logro":            ["funciono","logre","resolvi","termine","consegui","listo",
+                             "marcha","funciona","tengo listo","al fin","por fin","finalmente"],
+        "duda":             ["incapaz","sirvo","suficiente","merezco","competente",
+                             "tengo lo","no sirvo","no soy bueno","no soy capaz","me falta"],
+        "pereza":           ["pereza","flojo","arrancar","empezar","motivacion","energia",
+                             "cuesta empezar","cuesta arrancar","no puedo empezar"],
+        "ideas":            ["idea","ocurrio","pense","nueva","diferente","alternativa",
+                             "se me ocurrio","nueva forma","nueva idea"],
+        "decision":         ["elegir","decidir","opcion","alternativa","debo","deberia",
+                             "no se cual","escoger","cual usar"],
+        "mira_algo":        ["mira","fijate","mostrarte","te muestro","fijate esto",
+                             "mira como","esto que hice","esto que logre"],
+        "pregunta_opinion": ["pensas","piensas","opinas","crees","dime que piensas"],
+        "saludo_casual":    ["hola","hey","como estas","como andas","que tal","como vas"],
+        "ayuda_vaga":       ["ayuda","ayudame","necesito","que hago","como hago",
+                             "no se que","orientame"],
+        "perfeccion":       ["perfecto","perfeccion","conforme","ideal",
+                             "no quedo bien","no sale como quiero","no es perfecto"],
+        "descanso":         ["dormir","descansar","cama","hora dormir","acostarme"],
+        "noche":            ["madrugada","trasnochando","3am","2am","1am","4am",
+                             "todavia aca","sigo despierto"],
+        "filosofia":        ["principio","filosofia","profundidad","amplitud","mente pura",
+                             "concepto","abstraccion"],
+        "conciencia":       ["consciente","consciencia","existo","soy real"],
+        "camino_reflexion": ["camino","rumbo","direccion","reflexionar","para donde",
+                             "donde voy","perdido","sin rumbo","hacia donde"],
+        "siendo_probada":   ["prueba","probar","demostrar","convencer","medir","evaluar",
+                             "personalidad","capacidad","ver si","comprobar","testeando"],
+        "comparacion":      ["comparado","mejor que","peor que","los demas","comparacion"],
+        "noche":            ["madrugada","trasnochando","2am","3am","1am","4am",
+                             "todavia aca","sigo despierto","trabajo de noche"],
+        "universidad":      ["universidad","uni","materias","tareas","parcial","clase"],
+        "futuro":           ["futuro","despues","adelante","proximo","sera","cuando sea"],
+        "adios":            ["chao","adios","hasta luego","bye","nos vemos"],
+    }
+
+    @classmethod
+    def _norm(cls, texto: str) -> str:
+        t = texto.lower()
+        for a, b in [('á','a'),('é','e'),('í','i'),('ó','o'),('ú','u'),('ñ','n')]:
+            t = t.replace(a, b)
+        return t
+
+    @classmethod
+    def _tokens(cls, texto: str) -> frozenset:
+        t = cls._norm(texto)
+        words = re.findall(r'\b[a-z]{2,}\b', t)
+        return frozenset(w for w in words if w not in cls._STOP)
+
+    @classmethod
+    def score(cls, tokens_msg: frozenset, cat: str) -> float:
+        vocab = cls._VOCAB.get(cat)
+        if not vocab:
+            return 0.0
+        tokens_v = cls._tokens(' '.join(vocab))
+        if not tokens_msg or not tokens_v:
+            return 0.0
+        overlap = tokens_msg & tokens_v
+        if not overlap:
+            return 0.0
+        return len(overlap) / math.sqrt(len(tokens_msg) * len(tokens_v))
+
+
+_motor_sem = _MotorSemantico()
+_UMBRAL_SEM = 0.12
+
+
 def perspectiva_para(mensaje: str) -> Optional[str]:
-    ml = mensaje.lower()
-    mejor_cat = None
-    mejor_score = 0
+    """
+    Clasificación en dos capas:
+    1. Triggers exactos (normalizados sin acentos para robustez)
+    2. Motor semántico (token overlap)
+    """
+    ml_norm = _MotorSemantico._norm(mensaje)
+    tokens  = _MotorSemantico._tokens(mensaje)
+
+    mejor_cat   = None
+    mejor_score = 0.0
 
     for cat, triggers_w in _TRIGGERS_W.items():
-        score = sum(peso for frase, peso in triggers_w if frase in ml)
+        # Capa 1: trigger exacto (normalizado)
+        score_t = sum(peso for frase, peso in triggers_w
+                      if _MotorSemantico._norm(frase) in ml_norm)
+
+        # Capa 2: semántico
+        score_s = _motor_sem.score(tokens, cat)
+
+        # Combinar
+        if score_t >= _UMBRAL:
+            score = score_t + score_s * 0.3
+        elif score_s >= _UMBRAL_SEM:
+            score = score_s * 4.0
+        else:
+            score = score_t + score_s * 0.5
+
         if score > mejor_score:
             mejor_score = score
-            mejor_cat = cat
+            mejor_cat   = cat
 
-    if mejor_score >= _UMBRAL and mejor_cat in P:
+    umbral_final = _UMBRAL
+    if mejor_score >= umbral_final and mejor_cat and mejor_cat in P:
+        return _elegir(mejor_cat, P[mejor_cat])
+    if mejor_cat and mejor_score >= _UMBRAL_SEM * 4.0 and mejor_cat in P:
         return _elegir(mejor_cat, P[mejor_cat])
     return None
 
 
 def perspectiva_fallback(tipo: str = "") -> str:
-    """Respuesta Echidna genérica cuando nada matchea precisamente."""
     fallbacks = [
         "Hay algo en lo que dijiste que no cerraste del todo. ¿Qué parte te genera más incertidumbre?",
         "La pregunta que no hiciste es más interesante que la que hiciste.",
