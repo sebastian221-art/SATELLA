@@ -77,5 +77,84 @@
     "aprendi": "",
     "fecha": "2026-06-08T21:31:08.189929",
     "turnos": 1
+  },
+  {
+    "tema_principal": "conversación Satella",
+    "estado_sebastian": "normal",
+    "proyecto_activo": null,
+    "pendientes": [],
+    "aprendi": null,
+    "fecha": "2026-06-09T13:13:37.609907",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "crecimiento personal",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir objetivo claro"
+    ],
+    "aprendi": "autoexploración",
+    "fecha": "2026-06-09T19:09:51.385530",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "motivación interna",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir objetivo claro",
+      "establecer rutina de revisión"
+    ],
+    "aprendi": "autoexploración impulsa progreso",
+    "fecha": "2026-06-09T19:59:32.511286",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "ordenar usuarios",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "ambos",
+    "pendientes": [
+      "manejar lista vacía"
+    ],
+    "aprendi": "usar sorted con reverse para ordenar",
+    "fecha": "2026-06-09T20:32:46.122666",
+    "turnos": 7
+  },
+  {
+    "tema_principal": "ordenar usuarios",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "eliminar duplicados",
+      "ordenar lista de usuarios"
+    ],
+    "aprendi": "la importancia de ordenar y limpiar datos",
+    "fecha": "2026-06-12T18:08:07.258168",
+    "turnos": 22
+  },
+  {
+    "tema_principal": "organizar usuarios",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir criterios de orden",
+      "implementar algoritmo de clasificación"
+    ],
+    "aprendi": "claridad impulsa eficiencia",
+    "fecha": "2026-06-13T00:16:15.080771",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "organizar usuarios",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir roles",
+      "establecer permisos"
+    ],
+    "aprendi": "priorizar tareas reduce la ansiedad",
+    "fecha": "2026-06-13T00:38:32.435733",
+    "turnos": 1
   }
 ]

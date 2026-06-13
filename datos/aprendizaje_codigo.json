@@ -1,0 +1,170 @@
+[
+  {
+    "ts": "2026-06-12 17:13:10",
+    "modo": "generacion",
+    "entrada": "creame una función que combine intervalos solapados, por ejemplo [[1,3],[2,6],[8,10]] debe dar [[1,6],[8,10]]",
+    "resumen": "Generé la solución (pythónica); la verifiqué y pasó sintaxis y linting y corrió sin errores."
+  },
+  {
+    "ts": "2026-06-12 17:13:56",
+    "modo": "generacion",
+    "entrada": "creame una función que convierta un número romano a entero y maneje entradas inválidas",
+    "resumen": "Generé la solución (pythónica); la verifiqué y pasó sintaxis y linting y corrió sin errores."
+  },
+  {
+    "ts": "2026-06-12 17:14:18",
+    "modo": "generacion",
+    "entrada": "creame una función recursiva que calcule el n-ésimo número de Fibonacci de forma eficiente",
+    "resumen": "Generé la solución (pythónica); la verifiqué y pasó sintaxis y linting y corrió sin errores."
+  },
+  {
+    "ts": "2026-06-12 17:14:35",
+    "modo": "debug",
+    "entrada": "por qué falla: def maximo(lista): m = 0; for x in lista: if x > m: m = x; return m",
+    "resumen": "Diagnostiqué el código."
+  },
+  {
+    "ts": "2026-06-12 17:14:55",
+    "modo": "debug",
+    "entrada": "por qué falla: def quitar_pares(lista): for x in lista: if x % 2 == 0: lista.remove(x); return lista",
+    "resumen": "Diagnostiqué el código."
+  },
+  {
+    "ts": "2026-06-12 17:15:05",
+    "modo": "analisis",
+    "entrada": "analizá: def ordenar(xs):\n    for i in range(len(xs)):\n        for j in range(len(xs)-1):\n            if xs[j] > xs[j+1]:\n                xs[j], xs[j+1] = xs[j+1], xs[j]\n    return xs",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad algorítmica O(n²), complejidad ciclomática baja (CC=4), mantenibilidad buena (MI=70.9), sin problemas de linting."
+  },
+  {
+    "ts": "2026-06-12 17:15:19",
+    "modo": "ejecutar",
+    "entrada": "corré esto: print(sum(i*i for i in range(1, 1001)))",
+    "resumen": "Lo corrí: terminó bien en 136ms."
+  },
+  {
+    "ts": "2026-06-13 00:16:27",
+    "modo": "generacion",
+    "entrada": "creame una función que calcule el promedio de una lista de números",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
+  },
+  {
+    "ts": "2026-06-13 00:16:49",
+    "modo": "generacion",
+    "entrada": "creame una función que determine si dos palabras son anagramas",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
+  },
+  {
+    "ts": "2026-06-13 00:17:01",
+    "modo": "generacion",
+    "entrada": "creame una función que valide si una contraseña es fuerte: mínimo 8 caracteres, una mayúscula, un número y un símbolo",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
+  },
+  {
+    "ts": "2026-06-13 00:17:06",
+    "modo": "debug",
+    "entrada": "por qué falla: def es_par(n): return n % 2 == 1",
+    "resumen": "Diagnostiqué el código."
+  },
+  {
+    "ts": "2026-06-13 00:17:14",
+    "modo": "debug",
+    "entrada": "por qué falla: def cuenta_vocales(s): return len([c for c in s if c in 'aeiou'])",
+    "resumen": "Diagnostiqué el código."
+  },
+  {
+    "ts": "2026-06-13 00:17:21",
+    "modo": "analisis",
+    "entrada": "analizá: def pares(xs):\n    r = []\n    for a in xs:\n        for b in xs:\n            r.append((a, b))\n    return r",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad algorítmica O(n²), complejidad ciclomática baja (CC=3), mantenibilidad buena (MI=100.0), sin problemas de linting."
+  },
+  {
+    "ts": "2026-06-13 00:17:31",
+    "modo": "analisis",
+    "entrada": "analizá: def suma(n):\n    if n == 0:\n        return 0\n    return n + suma(n-1)",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad algorítmica recursiva (depende de la recursión), complejidad ciclomática baja (CC=2), mantenibilidad buena (MI=76.8), sin problemas de linting."
+  },
+  {
+    "ts": "2026-06-13 00:17:38",
+    "modo": "ejecutar",
+    "entrada": "corré esto: print(len([x for x in range(1000) if x % 7 == 0]))",
+    "resumen": "Lo corrí: terminó bien en 64ms."
+  },
+  {
+    "ts": "2026-06-13 00:27:15",
+    "modo": "generacion",
+    "entrada": "creame una función que calcule la similitud entre dos textos usando TF-IDF y similitud coseno, sin librerías externas",
+    "resumen": "Generé la solución (revisá los tests)."
+  },
+  {
+    "ts": "2026-06-13 00:27:36",
+    "modo": "generacion",
+    "entrada": "creame un decorador que reintente una función con backoff exponencial y jitter cuando lance una excepción, con número de reintentos configurable",
+    "resumen": "Generé la solución (revisá los tests)."
+  },
+  {
+    "ts": "2026-06-13 00:27:43",
+    "modo": "analisis",
+    "entrada": "analizá por qué este código no hace lo esperado: funcs = [lambda: i for i in range(3)]; print([f() for f in funcs])",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad algorítmica O(n), mantenibilidad buena (MI=100.0), 1 cosa(s) para revisar."
+  },
+  {
+    "ts": "2026-06-13 00:27:50",
+    "modo": "analisis",
+    "entrada": "analizá: def estadisticas(datos):\n    g = (x * 2 for x in datos)\n    total = sum(g)\n    maximo = max(g)\n    return total, maximo",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad algorítmica O(n), complejidad ciclomática baja (CC=2), mantenibilidad buena (MI=79.7), sin problemas de linting."
+  },
+  {
+    "ts": "2026-06-13 00:28:04",
+    "modo": "analisis",
+    "entrada": "analizá la complejidad real de: def construir(n):\n    s = \"\"\n    for i in range(n):\n        s += str(i)\n    return s",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad algorítmica O(n), complejidad ciclomática baja (CC=2), mantenibilidad buena (MI=79.7), sin problemas de linting."
+  },
+  {
+    "ts": "2026-06-13 00:39:01",
+    "modo": "generacion",
+    "entrada": "creame una clase de caché en memoria con expiración por tiempo (TTL) y límite de tamaño con desalojo LRU, para cachear las respuestas de Groq",
+    "resumen": "Generé la solución (revisá los tests)."
+  },
+  {
+    "ts": "2026-06-13 00:39:13",
+    "modo": "generacion",
+    "entrada": "creame un rate limiter con algoritmo token bucket para no pasar un límite de peticiones por minuto a la API de Groq",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
+  },
+  {
+    "ts": "2026-06-13 00:39:39",
+    "modo": "generacion",
+    "entrada": "creame una función que evalúe expresiones matemáticas con paréntesis y precedencia de operadores (+, -, *, /) sin usar eval",
+    "resumen": "Generé la solución (revisá los tests)."
+  },
+  {
+    "ts": "2026-06-13 00:39:52",
+    "modo": "generacion",
+    "entrada": "creame una función que calcule la similitud entre dos textos usando TF-IDF y similitud coseno, sin librerías externas",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
+  },
+  {
+    "ts": "2026-06-13 00:40:23",
+    "modo": "generacion",
+    "entrada": "creame un decorador que reintente una función con backoff exponencial y jitter cuando lance una excepción, con número de reintentos configurable",
+    "resumen": "Generé la solución (revisá los tests)."
+  },
+  {
+    "ts": "2026-06-13 00:40:29",
+    "modo": "analisis",
+    "entrada": "analizá por qué este código no hace lo esperado: funcs = [lambda: i for i in range(3)]; print([f() for f in funcs])",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad estructural (por bucles) O(n), mantenibilidad buena (MI=100.0), 1 cosa(s) para revisar."
+  },
+  {
+    "ts": "2026-06-13 00:40:35",
+    "modo": "analisis",
+    "entrada": "analizá: def estadisticas(datos):\n    g = (x * 2 for x in datos)\n    total = sum(g)\n    maximo = max(g)\n    return total, maximo",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad estructural (por bucles) O(n), complejidad ciclomática baja (CC=2), mantenibilidad buena (MI=79.7), sin problemas de linting."
+  },
+  {
+    "ts": "2026-06-13 00:40:43",
+    "modo": "analisis",
+    "entrada": "analizá la complejidad real de: def construir(n):\n    s = \"\"\n    for i in range(n):\n        s += str(i)\n    return s",
+    "resumen": "Analicé el código: Sintaxis correcta. complejidad estructural (por bucles) O(n), complejidad ciclomática baja (CC=2), mantenibilidad buena (MI=79.7), sin problemas de linting."
+  }
+]

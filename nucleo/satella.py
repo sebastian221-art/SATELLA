@@ -1,6 +1,10 @@
 """
 Satella — cerebro central.
 Orquesta comprensión → memoria → RAG → generación → validación → voz.
+
+Cambio mínimo vs antes: el dict de respuesta ahora incluye "voz"
+(echidna|ram|rem|emilia) para que la interfaz la muestre como etiqueta.
+La voz la decide generacion.py y la deja en generacion.ultima_voz.
 """
 import logging
 from nucleo import comprension, memoria, rag, generacion, voz
@@ -13,7 +17,7 @@ MAX_REINTENTOS = 2
 def procesar_mensaje(mensaje: str, voz_habilitada: bool = True) -> dict:
     """
     Pipeline completo de Satella.
-    Retorna dict con: respuesta, audio_b64, nombre_usado, comprension
+    Retorna dict con: respuesta, audio_b64, nombre_usado, tono, voz, comprension
     """
     # ── Capa 1: Comprensión ─────────────────────────────────────
     ctx_texto = memoria.historial_texto()
@@ -57,6 +61,9 @@ def procesar_mensaje(mensaje: str, voz_habilitada: bool = True) -> dict:
 
     respuesta = voz.limpiar(respuesta)
 
+    # Voz usada (la dejó generacion.py al generar)
+    voz_usada = getattr(generacion, "ultima_voz", "echidna")
+
     # ── Registrar turno ─────────────────────────────────────────
     memoria.registrar_turno("user", mensaje)
     memoria.registrar_turno("assistant", respuesta)
@@ -71,6 +78,7 @@ def procesar_mensaje(mensaje: str, voz_habilitada: bool = True) -> dict:
         "audio_b64": audio_b64,
         "nombre_usado": comp.get("nombre", "Sebas"),
         "tono": comp.get("tono", "normal"),
+        "voz": voz_usada,
         "comprension": comp,
     }
 
@@ -91,6 +99,7 @@ def iniciar_conversacion(voz_habilitada: bool = True) -> dict:
     return {
         "respuesta": respuesta,
         "audio_b64": audio_b64,
+        "voz": getattr(generacion, "ultima_voz", "echidna"),
         "iniciacion": True,
     }
 
@@ -103,5 +112,9 @@ def cerrar_sesion() -> dict:
 
     resumen = generacion.sintetizar_episodio(historial)
     memoria.cerrar_sesion(resumen)
+
+    # Aprendizaje del SISTEMA: Satella aprende cosas nuevas de Sebas y las acumula.
+    generacion.actualizar_modelo_sebas(historial)
+
     log.info(f"Sesión cerrada | tema: {resumen.get('tema_principal','?')}")
     return resumen

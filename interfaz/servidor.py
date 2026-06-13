@@ -1,5 +1,7 @@
 """
 Servidor Flask + SocketIO de Satella.
+Cambio: cada emit 'satella_responde' ahora incluye 'voz' para que la interfaz
+muestre la etiqueta (echidna|ram|rem|emilia).
 """
 import logging
 import threading
@@ -61,6 +63,7 @@ def on_connect():
             socketio.emit('satella_responde', {
                 'texto': texto,
                 'audio': resultado.get('audio_b64'),
+                'voz': resultado.get('voz', 'echidna'),
                 'iniciacion': True,
             })
         except Exception as e:
@@ -98,11 +101,12 @@ def on_mensaje(data):
     try:
         resultado = procesar_mensaje(texto_user, voz_habilitada=_estado["voz_activa"])
         respuesta = resultado['respuesta']
-        log.info(f"[SATELLA] ({len(respuesta)} chars) {respuesta}")
+        log.info(f"[SATELLA] ({len(respuesta)} chars | voz={resultado.get('voz')}) {respuesta}")
         emit('satella_responde', {
             'texto': respuesta,
             'audio': resultado.get('audio_b64'),
             'tono': resultado.get('tono', 'normal'),
+            'voz': resultado.get('voz', 'echidna'),
         })
     except Exception as e:
         log.error(f"Error procesando mensaje: {e}")
@@ -145,6 +149,7 @@ def _timer_iniciacion():
                 socketio.emit('satella_responde', {
                     'texto': texto,
                     'audio': resultado.get('audio_b64'),
+                    'voz': resultado.get('voz', 'echidna'),
                     'iniciacion': True,
                 })
                 _estado["ultimo_mensaje_ts"] = time.time()

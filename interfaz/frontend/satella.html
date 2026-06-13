@@ -230,9 +230,29 @@
     color: var(--txt2);
     margin-top: 4px;
     opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 7px;
   }
 
-  .msg-row.user .msg-meta { text-align: right; }
+  .msg-row.user .msg-meta { text-align: right; justify-content: flex-end; }
+
+  /* ── ETIQUETA DE VOZ (echidna|ram|rem|emilia) ────────────── */
+  .voz-badge {
+    display: inline-block;
+    font-size: 9.5px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    opacity: 1;
+  }
+  .voz-echidna { background: rgba(168,130,255,0.16); color: #c4a7ff; }
+  .voz-ram     { background: rgba(255,120,120,0.16); color: #ff9a9a; }
+  .voz-rem     { background: rgba(120,170,255,0.16); color: #a9c7ff; }
+  .voz-emilia  { background: rgba(150,220,180,0.16); color: #a7e3c0; }
 
   /* thinking indicator */
   .thinking-row {
@@ -480,11 +500,11 @@ socket.on('satella_pensando', ({ estado }) => {
   }
 });
 
-socket.on('satella_responde', ({ texto, audio, iniciacion }) => {
+socket.on('satella_responde', ({ texto, audio, iniciacion, voz }) => {
   ocultarThinking();
   avatarEl.classList.remove('thinking');
   setStatus('');
-  agregarMensaje('satella', texto, iniciacion);
+  agregarMensaje('satella', texto, iniciacion, voz);
   if (vozActiva && audio) {
     reproducirAudio(audio);
   }
@@ -502,7 +522,7 @@ socket.on('voz_estado', ({ activa }) => {
 });
 
 // ── Funciones de mensajes ─────────────────────────────────────
-function agregarMensaje(quien, texto, iniciacion = false) {
+function agregarMensaje(quien, texto, iniciacion = false, voz = null) {
   if (emptyEl) emptyEl.style.display = 'none';
 
   const row = document.createElement('div');
@@ -518,7 +538,18 @@ function agregarMensaje(quien, texto, iniciacion = false) {
 
   const meta = document.createElement('div');
   meta.className = 'msg-meta';
-  meta.textContent = horaActual();
+
+  const hora = document.createElement('span');
+  hora.textContent = horaActual();
+  meta.appendChild(hora);
+
+  // Etiqueta de voz (solo en mensajes de Satella)
+  if (quien === 'satella' && voz) {
+    const badge = document.createElement('span');
+    badge.className = 'voz-badge voz-' + voz;
+    badge.textContent = voz;
+    meta.appendChild(badge);
+  }
 
   const contenido = document.createElement('div');
   contenido.style.display = 'flex';
