@@ -156,5 +156,115 @@
     "aprendi": "priorizar tareas reduce la ansiedad",
     "fecha": "2026-06-13T00:38:32.435733",
     "turnos": 1
+  },
+  {
+    "tema_principal": "generador agotado",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "recrear generator para max",
+      "usar list(g) o duplicar generator"
+    ],
+    "aprendi": "los generadores se consumen una sola vez",
+    "fecha": "2026-06-13T00:46:47.781923",
+    "turnos": 16
+  },
+  {
+    "tema_principal": "propósito generador",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "reconectar energía al generador",
+      "terminar ensamblaje"
+    ],
+    "aprendi": "la energía es clave para avanzar",
+    "fecha": "2026-06-13T00:53:38.621568",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "propósito generador",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "buscar sentido profundo",
+    "fecha": "2026-06-13T01:05:41.579290",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "propósito generador",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir metas claras"
+    ],
+    "aprendi": "Necesito claridad interna",
+    "fecha": "2026-06-13T01:10:50.208318",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "propósito generador",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "el propósito puede no ser propio",
+    "fecha": "2026-06-13T01:17:03.632290",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "propósito interno",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir propósito",
+      "enfrentar miedo"
+    ],
+    "aprendi": "el miedo oculta el verdadero deseo",
+    "fecha": "2026-06-13T01:36:01.042195",
+    "turnos": 2
+  },
+  {
+    "tema_principal": "conversación Satella",
+    "estado_sebastian": "normal",
+    "proyecto_activo": null,
+    "pendientes": [],
+    "aprendi": null,
+    "fecha": "2026-06-13T01:55:34.036278",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "ordenar lista",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "validar y ordenar listas",
+    "fecha": "2026-06-13T02:06:06.731389",
+    "turnos": 22
+  },
+  {
+    "tema_principal": "asistencia Satella",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "convertir números a romanos",
+    "fecha": "2026-06-13T02:20:41.908893",
+    "turnos": 13
+  },
+  {
+    "tema_principal": "números romanos",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "convertir años a romano y detectar sentimientos",
+    "fecha": "2026-06-13T02:36:07.321957",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "números romanos",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "reflexión sobre motivación",
+    "fecha": "2026-06-13T03:03:26.384445",
+    "turnos": 1
   }
 ]

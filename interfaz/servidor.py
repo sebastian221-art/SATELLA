@@ -2,6 +2,7 @@
 Servidor Flask + SocketIO de Satella.
 Cambio: cada emit 'satella_responde' ahora incluye 'voz' para que la interfaz
 muestre la etiqueta (echidna|ram|rem|emilia).
+Cambio Fase 2A: se registra el editor de código (/editor) sin tocar el chat.
 """
 import logging
 import threading
@@ -13,6 +14,7 @@ from flask_socketio import SocketIO, emit
 from config import (HOST, PORT, VOZ_HABILITADA, MINUTOS_SILENCIO_INICIACION, SATELLA_ROOT)
 from nucleo import memoria, rag
 from nucleo.satella import procesar_mensaje, iniciar_conversacion, cerrar_sesion
+from interfaz.editor_backend import registrar_editor
 
 log = logging.getLogger("satella.servidor")
 
@@ -34,6 +36,9 @@ _estado = {
 }
 
 FRONTEND_PATH = os.path.join(SATELLA_ROOT, "interfaz", "frontend", "satella.html")
+
+# Fase 2A: ruta /editor + eventos del editor de código.
+registrar_editor(app, socketio)
 
 
 @app.route('/')

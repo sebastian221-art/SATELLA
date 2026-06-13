@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satella · Editor</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+
+<style>
+  :root{
+    --bg:#08060d; --bg2:#0e0b16; --panel:#120d1d; --panel2:#171022; --borde:rgba(180,140,255,.10);
+    --borde2:rgba(180,140,255,.22); --txt:#ece7f5; --tenue:#9385b3;
+    --acento:#b388ff; --acento2:#7c3aed; --deep:#4c1d95; --star:#c4b5fd;
+    --ok:#86e8a0; --err:#ff8aa6; --aviso:#ffd479;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'DM Sans',sans-serif; --display:'Syne',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--txt); font-family:var(--sans);
+    display:flex; flex-direction:column; height:100vh; overflow:hidden; position:relative}
+  body::before{content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(900px 420px at 50% -8%, rgba(124,58,237,.18), transparent 70%),
+      radial-gradient(600px 300px at 100% 110%, rgba(76,29,149,.12), transparent 70%)}
+  body>*{position:relative; z-index:1}
+
+  header{display:flex; align-items:center; gap:14px; padding:14px 22px;
+    background:rgba(18,13,29,.7); backdrop-filter:blur(10px); border-bottom:1px solid var(--borde)}
+  .logo{display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:600; font-size:18px; letter-spacing:.5px}
+  .star{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%;
+    background:radial-gradient(circle,var(--acento2),var(--deep)); box-shadow:0 0 18px rgba(124,58,237,.5); font-size:14px; color:#fff}
+  .logo .sub{color:var(--tenue); font-weight:400; font-size:13px; font-family:var(--sans)}
+  header .spacer{flex:1}
+  .icon-btn{background:var(--panel2); border:1px solid var(--borde); color:var(--tenue); width:36px; height:36px;
+    border-radius:9px; cursor:pointer; font-size:15px; transition:.18s; display:flex; align-items:center; justify-content:center}
+  .icon-btn:hover{border-color:var(--borde2); color:var(--acento)}
+  .icon-btn.on{background:rgba(124,58,237,.14); color:var(--acento); border-color:rgba(124,58,237,.35)}
+  .volver{color:var(--tenue); text-decoration:none; font-size:13px; padding:7px 14px; border:1px solid var(--borde); border-radius:9px; transition:.18s}
+  .volver:hover{color:var(--txt); border-color:var(--borde2); background:rgba(180,140,255,.06)}
+
+  /* fila principal: explorador + columna principal */
+  .body-row{flex:1; display:flex; min-height:0}
+
+  .explorer{width:256px; flex-shrink:0; border-right:1px solid var(--borde); background:rgba(18,13,29,.5);
+    display:flex; flex-direction:column; min-height:0; transition:margin-left .2s}
+  .explorer.hidden{margin-left:-256px}
+  .exp-head{padding:11px 14px; border-bottom:1px solid var(--borde); display:flex; flex-direction:column; gap:8px}
+  .exp-titulo{font-size:11px; color:var(--tenue); text-transform:uppercase; letter-spacing:1.5px; font-family:var(--display); font-weight:600}
+  select{width:100%; background:var(--bg2); color:var(--txt); border:1px solid var(--borde); border-radius:9px;
+    padding:8px 10px; font-family:var(--sans); font-size:13px; outline:none; cursor:pointer}
+  select:focus{border-color:var(--borde2)}
+  .tree{flex:1; overflow:auto; padding:8px 6px}
+  .nodo{font-size:13px; padding:4px 8px; border-radius:7px; cursor:pointer; display:flex; align-items:center; gap:7px;
+    color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .nodo:hover{background:rgba(180,140,255,.08)}
+  .nodo.archivo.activo{background:rgba(124,58,237,.20); color:var(--acento)}
+  .nodo.no-abrible{opacity:.4; cursor:default}
+  .nodo.no-abrible:hover{background:transparent}
+  .nodo .ic{font-size:11px; width:14px; text-align:center; color:var(--tenue); flex-shrink:0}
+  .hijos{margin-left:13px; border-left:1px solid var(--borde)}
+  .tree .vacio{color:var(--tenue); font-style:italic; font-size:12px; padding:10px 8px}
+
+  .main-col{flex:1; display:flex; flex-direction:column; min-height:0}
+
+  .genbar{display:flex; gap:10px; padding:13px 20px; background:rgba(14,11,22,.5); border-bottom:1px solid var(--borde)}
+  .genbar .wrap{flex:1; position:relative; display:flex; align-items:center}
+  .genbar .wrap::before{content:'✦'; position:absolute; left:14px; color:var(--acento); font-size:13px; opacity:.7}
+  .genbar input{flex:1; background:var(--bg2); border:1px solid var(--borde); border-radius:12px; color:var(--txt);
+    padding:11px 14px 11px 36px; font-size:14px; outline:none; font-family:var(--sans); transition:.18s}
+  .genbar input:focus{border-color:var(--borde2); box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+  .genbar input::placeholder{color:var(--tenue)}
+
+  button{font-family:var(--sans); cursor:pointer; border:none; border-radius:11px; font-size:13px; font-weight:500; padding:10px 17px; transition:.18s; white-space:nowrap}
+  .btn-gen{background:linear-gradient(135deg,var(--acento2),var(--acento)); color:#fff; font-weight:600; box-shadow:0 4px 18px rgba(124,58,237,.35)}
+  .btn-gen:hover{filter:brightness(1.12)}
+  .btn-gen:disabled{opacity:.5; cursor:wait; box-shadow:none}
+
+  .toolbar{display:flex; align-items:center; gap:8px; padding:9px 20px; background:rgba(18,13,29,.5); border-bottom:1px solid var(--borde)}
+  .archivo-actual{font-size:12.5px; color:var(--tenue); font-family:var(--mono); max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .archivo-actual b{color:var(--acento)}
+  .toolbar .spacer{flex:1}
+  .btn-tool{background:var(--panel2); color:var(--tenue); border:1px solid var(--borde); padding:8px 13px; font-size:12.5px}
+  .btn-tool:hover{border-color:var(--borde2); color:var(--acento); background:rgba(180,140,255,.06)}
+  .btn-tool:disabled{opacity:.4; cursor:default}
+  .btn-save{background:rgba(124,58,237,.16); color:var(--acento); border:1px solid rgba(124,58,237,.35); padding:8px 14px; font-weight:600}
+  .btn-save:hover{background:rgba(124,58,237,.26)}
+  .btn-save:disabled{opacity:.4; cursor:default; background:var(--panel2); color:var(--tenue); border-color:var(--borde)}
+  .btn-run{background:linear-gradient(135deg,rgba(134,232,160,.16),rgba(134,232,160,.08)); color:var(--ok); border:1px solid rgba(134,232,160,.3); padding:8px 15px; font-weight:600}
+  .btn-run:hover{background:rgba(134,232,160,.22)}
+
+  .editor-wrap{flex:1; min-height:0; display:flex; flex-direction:column}
+  .CodeMirror{height:100%; font-family:var(--mono); font-size:13.5px; line-height:1.65; background:var(--bg2)!important}
+  .CodeMirror-gutters{background:var(--bg)!important; border-right:1px solid var(--borde)!important}
+
+  .consola{height:34%; min-height:120px; background:rgba(18,13,29,.6); border-top:1px solid var(--borde); display:flex; flex-direction:column}
+  .consola-head{display:flex; align-items:center; gap:9px; padding:9px 20px; border-bottom:1px solid var(--borde);
+    font-size:11px; color:var(--tenue); text-transform:uppercase; letter-spacing:1.5px; font-family:var(--display); font-weight:600}
+  .punto{width:8px; height:8px; border-radius:50%; background:var(--borde2); transition:.2s}
+  .punto.ok{background:var(--ok); box-shadow:0 0 8px var(--ok)} .punto.err{background:var(--err); box-shadow:0 0 8px var(--err)}
+  .punto.run{background:var(--aviso); animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .consola-body{flex:1; overflow:auto; padding:15px 20px; font-family:var(--mono); font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word}
+  .consola-body .vacio{color:var(--tenue); font-style:italic; font-family:var(--sans)}
+  .salida-ok{color:var(--txt)} .salida-err{color:var(--err)}
+  .meta{color:var(--tenue); font-size:12px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--borde); font-family:var(--sans)}
+  .razon{color:#d3c5f5; font-family:var(--sans); line-height:1.7}
+  .problema{color:var(--aviso); margin-top:4px; font-family:var(--sans)}
+  .etq{display:inline-block; font-size:10px; padding:3px 10px; border-radius:7px; background:rgba(180,140,255,.12); color:var(--acento); margin-bottom:10px; letter-spacing:1px; font-family:var(--display); font-weight:600}
+  ::-webkit-scrollbar{width:6px; height:6px} ::-webkit-scrollbar-thumb{background:var(--borde2); border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="icon-btn on" id="btn-exp" title="Mostrar/ocultar explorador" onclick="toggleExplorer()">📁</button>
+  <div class="logo"><span class="star">✦</span> Satella <span class="sub">· editor</span></div>
+  <div class="spacer"></div>
+  <a class="volver" href="/">← volver al chat</a>
+</header>
+
+<div class="body-row">
+  <!-- EXPLORADOR -->
+  <aside class="explorer" id="explorer">
+    <div class="exp-head">
+      <span class="exp-titulo">proyecto</span>
+      <select id="select-proyecto" onchange="abrirProyecto()">
+        <option value="">— elegí un proyecto —</option>
+      </select>
+    </div>
+    <div class="tree" id="tree"><div class="vacio">Elegí un proyecto para ver sus archivos.</div></div>
+  </aside>
+
+  <!-- COLUMNA PRINCIPAL -->
+  <div class="main-col">
+    <div class="genbar">
+      <div class="wrap">
+        <input id="prompt" type="text" placeholder="Pedile a Satella que cree algo…"
+               onkeydown="if(event.key==='Enter')generar()">
+      </div>
+      <button class="btn-gen" id="btn-gen" onclick="generar()">Generar</button>
+    </div>
+
+    <div class="toolbar">
+      <span class="archivo-actual" id="archivo-actual">sin archivo abierto</span>
+      <div class="spacer"></div>
+      <button class="btn-tool" onclick="copiar()">⧉ Copiar</button>
+      <button class="btn-tool" onclick="descargar()">↓ Descargar</button>
+      <button class="btn-save" id="btn-save" onclick="guardar()" disabled>💾 Guardar</button>
+      <button class="btn-tool" onclick="analizar()">🔍 Analizar</button>
+      <button class="btn-run" onclick="ejecutar()">▶ Ejecutar</button>
+    </div>
+
+    <div class="editor-wrap">
+      <textarea id="editor"># Abrí un archivo del explorador, escribí acá, o pedile a Satella que genere código arriba.
+
+def saludo(nombre):
+    return f"Hola, {nombre}"
+
+print(saludo("Subaru"))
+</textarea>
+    </div>
+
+    <div class="consola">
+      <div class="consola-head"><span class="punto" id="punto"></span><span id="consola-estado">salida</span></div>
+      <div class="consola-body" id="salida"><span class="vacio">La salida aparecerá acá cuando ejecutes o analices.</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script>
+const socket = io();
+let archivoActual = null;  // ruta relativa del archivo abierto
+
+const cm = CodeMirror.fromTextArea(document.getElementById("editor"), {
+  mode:"python", theme:"dracula", lineNumbers:true, indentUnit:4, tabSize:4,
+  indentWithTabs:false, autofocus:true,
+  extraKeys:{ "Ctrl-Enter":ejecutar, "Cmd-Enter":ejecutar, "Ctrl-S":guardar, "Cmd-S":guardar }
+});
+
+const salida=document.getElementById("salida"), punto=document.getElementById("punto"),
+      estadoTxt=document.getElementById("consola-estado");
+function setEstado(c,t){ punto.className="punto"+(c?" "+c:""); estadoTxt.textContent=t; }
+function escapar(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+function flash(msg){ setEstado("ok",msg); setTimeout(()=>setEstado("","salida"),1400); }
+
+/* ── Habilidad de código ──────────────────────────────────── */
+function ejecutar(){ setEstado("run","ejecutando…"); salida.innerHTML='<span class="vacio">corriendo…</span>';
+  socket.emit("editor_ejecutar",{codigo:cm.getValue()}); }
+function analizar(){ setEstado("run","analizando…"); salida.innerHTML='<span class="vacio">analizando…</span>';
+  socket.emit("editor_analizar",{codigo:cm.getValue()}); }
+function generar(){
+  const p=document.getElementById("prompt").value.trim(); if(!p) return;
+  const b=document.getElementById("btn-gen"); b.disabled=true; b.textContent="generando…";
+  setEstado("run","Satella está escribiendo el código…");
+  salida.innerHTML='<span class="vacio">generando (puede tardar ~30s en código difícil)…</span>';
+  socket.emit("editor_generar",{prompt:p});
+}
+function limpiar(){ cm.setValue(""); cm.focus(); }
+function copiar(){ navigator.clipboard.writeText(cm.getValue()).then(()=>flash("copiado ✓")); }
+function descargar(){
+  const nombre = archivoActual ? archivoActual.split("/").pop() : "satella_codigo.py";
+  const blob=new Blob([cm.getValue()],{type:"text/plain"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=nombre; a.click(); URL.revokeObjectURL(a.href); flash("descargado ✓");
+}
+
+/* ── Explorador de proyectos/archivos (2C) ────────────────── */
+function toggleExplorer(){
+  const ex=document.getElementById("explorer"); ex.classList.toggle("hidden");
+  document.getElementById("btn-exp").classList.toggle("on", !ex.classList.contains("hidden"));
+}
+function abrirProyecto(){
+  const p=document.getElementById("select-proyecto").value;
+  if(!p){ document.getElementById("tree").innerHTML='<div class="vacio">Elegí un proyecto.</div>'; return; }
+  document.getElementById("tree").innerHTML='<div class="vacio">cargando…</div>';
+  socket.emit("editor_abrir_proyecto",{proyecto:p});
+}
+function renderArbol(nodos, contenedor){
+  contenedor.innerHTML="";
+  if(!nodos.length){ contenedor.innerHTML='<div class="vacio">(vacío)</div>'; return; }
+  nodos.forEach(n=>{
+    if(n.tipo==="carpeta"){
+      const fila=document.createElement("div"); fila.className="nodo carpeta";
+      const ic=document.createElement("span"); ic.className="ic"; ic.textContent="▸";
+      const nm=document.createElement("span"); nm.textContent=n.nombre;
+      fila.appendChild(ic); fila.appendChild(nm);
+      const hijos=document.createElement("div"); hijos.className="hijos"; hijos.style.display="none";
+      renderArbol(n.hijos||[], hijos);
+      fila.onclick=()=>{ const ab=hijos.style.display!=="none"; hijos.style.display=ab?"none":"block"; ic.textContent=ab?"▸":"▾"; };
+      contenedor.appendChild(fila); contenedor.appendChild(hijos);
+    } else {
+      const fila=document.createElement("div");
+      fila.className="nodo archivo"+(n.abrible?"":" no-abrible");
+      fila.dataset.ruta=n.ruta;
+      const ic=document.createElement("span"); ic.className="ic"; ic.textContent=n.abrible?"›":"·";
+      const nm=document.createElement("span"); nm.textContent=n.nombre;
+      fila.appendChild(ic); fila.appendChild(nm);
+      if(n.abrible) fila.onclick=()=>abrirArchivo(n.ruta, fila);
+      contenedor.appendChild(fila);
+    }
+  });
+}
+function abrirArchivo(ruta, fila){
+  document.querySelectorAll(".nodo.archivo.activo").forEach(e=>e.classList.remove("activo"));
+  if(fila) fila.classList.add("activo");
+  socket.emit("editor_abrir_archivo",{ruta});
+}
+function guardar(){
+  if(!archivoActual){ flash("no hay archivo abierto"); return; }
+  socket.emit("editor_guardar_archivo",{ruta:archivoActual, contenido:cm.getValue()});
+}
+function setArchivo(ruta){
+  archivoActual=ruta;
+  const cont=document.getElementById("archivo-actual");
+  const save=document.getElementById("btn-save");
+  if(ruta){ cont.innerHTML="<b>"+escapar(ruta)+"</b>"; save.disabled=false; }
+  else { cont.textContent="sin archivo abierto"; save.disabled=true; }
+}
+
+/* ── Eventos del socket ───────────────────────────────────── */
+socket.on("connect",()=>{ setEstado("","salida"); socket.emit("editor_listar_proyectos"); });
+
+socket.on("editor_proyectos",({ok,proyectos})=>{
+  const sel=document.getElementById("select-proyecto");
+  sel.innerHTML='<option value="">— elegí un proyecto —</option>';
+  if(ok) proyectos.forEach(p=>{ const o=document.createElement("option"); o.value=p; o.textContent=p; sel.appendChild(o); });
+});
+socket.on("editor_arbol",({ok,arbol,error})=>{
+  const tree=document.getElementById("tree");
+  if(!ok){ tree.innerHTML='<div class="vacio">'+escapar(error||"error")+'</div>'; return; }
+  renderArbol(arbol, tree);
+});
+socket.on("editor_archivo",({ok,ruta,contenido,error})=>{
+  if(!ok){ flash("✗ "+(error||"no se pudo abrir")); return; }
+  cm.setValue(contenido); cm.scrollTo(0,0); setArchivo(ruta);
+  setEstado("ok","abierto: "+ruta.split("/").pop());
+});
+socket.on("editor_guardado",({ok,ruta,error})=>{
+  if(ok) flash("guardado ✓ "+ruta.split("/").pop());
+  else { setEstado("err","no se guardó"); salida.innerHTML='<span class="salida-err">'+escapar(error||"error al guardar")+'</span>'; }
+});
+
+socket.on("editor_estado",({estado})=>{ if(estado==="listo"){
+  const b=document.getElementById("btn-gen"); b.disabled=false; b.textContent="Generar"; }});
+
+socket.on("editor_resultado",(r)=>{
+  if(r.tipo==="ejecucion"){
+    let h="";
+    if(r.bloqueado){ setEstado("err","bloqueado"); h='<span class="salida-err">⛔ '+escapar(r.stderr)+'</span>'; }
+    else if(r.ok){ setEstado("ok","ok");
+      h='<span class="salida-ok">'+(r.stdout?escapar(r.stdout):'<span class="vacio">(sin salida)</span>')+'</span>';
+      if(r.stderr) h+='\n<span class="salida-err">'+escapar(r.stderr)+'</span>';
+      h+='<div class="meta">⏱ '+r.tiempo_ms+' ms</div>'; }
+    else { setEstado("err","error"); h='<span class="salida-err">'+escapar(r.stderr||"Falló la ejecución.")+'</span>'; }
+    salida.innerHTML=h;
+  }
+  else if(r.tipo==="analisis"){
+    setEstado(r.ok?"ok":"err", r.ok?"análisis":"sintaxis");
+    let h='<span class="etq">ANÁLISIS</span>\n';
+    if(r.razonamiento) h+='<span class="razon">'+escapar(r.razonamiento)+'</span>\n';
+    h+='<div class="meta">'+escapar(r.resumen)+'</div>';
+    if(r.problemas&&r.problemas.length){ h+='<div class="meta">Puntos para revisar:</div>';
+      r.problemas.forEach(p=>{ h+='<div class="problema">• '+escapar(p)+'</div>'; }); }
+    salida.innerHTML=h;
+  }
+  else if(r.tipo==="generacion"){
+    if(r.ok&&r.codigo){ cm.setValue(r.codigo);
+      let n="código generado";
+      if(r.tests_pasaron===true) n+=" · tests ✓"; else if(r.tests_pasaron===false) n+=" · tests ✗";
+      if(r.ciclos) n+=" · "+r.ciclos+" ciclo(s)";
+      setEstado("ok",n);
+      salida.innerHTML='<span class="vacio">Código en el editor. Ejecutalo (▶), guardalo (💾) o descargalo (↓).</span>';
+    } else { setEstado("err","error");
+      salida.innerHTML='<span class="salida-err">'+escapar(r.error||"No se pudo generar.")+'</span>'; }
+  }
+});
+</script>
+</body>
+</html>

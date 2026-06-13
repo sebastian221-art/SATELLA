@@ -166,5 +166,23 @@
     "modo": "analisis",
     "entrada": "analizá la complejidad real de: def construir(n):\n    s = \"\"\n    for i in range(n):\n        s += str(i)\n    return s",
     "resumen": "Analicé el código: Sintaxis correcta. complejidad estructural (por bucles) O(n), complejidad ciclomática baja (CC=2), mantenibilidad buena (MI=79.7), sin problemas de linting."
+  },
+  {
+    "ts": "2026-06-13 01:59:30",
+    "modo": "generacion",
+    "entrada": "creame una función que ordene una lista",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
+  },
+  {
+    "ts": "2026-06-13 02:23:11",
+    "modo": "generacion",
+    "entrada": "Utilizar la habilidad **romano** para convertir el número entero 2024 a su representación en números romanos.",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
+  },
+  {
+    "ts": "2026-06-13 02:23:48",
+    "modo": "generacion",
+    "entrada": "Utilizar la habilidad \"romano\" para convertir el número entero 50 a su representación en números romanos.",
+    "resumen": "Generé la solución y la probé con tests; pasaron."
   }
 ]

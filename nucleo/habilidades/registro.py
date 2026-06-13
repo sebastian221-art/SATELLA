@@ -1,24 +1,86 @@
 """
 nucleo/habilidades/registro.py
-Registro modular de habilidades. Para sumar una habilidad nueva (cálculo,
-internet, archivos...), la importás y la agregás a _SKILLS. Nada más cambia.
+─────────────────────────────────────────────────────────────────────────────
+Registro de habilidades con AUTODESCUBRIMIENTO.
 
-Cada habilidad debe exponer:
-  - NOMBRE: str
-  - detecta(texto, codigo_adjunto="") -> bool
-  - manejar(texto, contexto=None) -> dict  con {ok, skill, modo, resumen, cuerpo}
+Escanea las carpetas de nucleo/habilidades/, importa cada skill.py, lo valida
+contra el contrato (contrato.validar) y, si pasa, lo activa. Las carpetas que
+empiezan con "_" (ej: _pendientes) o "." se ignoran — ahí viven las habilidades
+que el creador dejó EN REVISIÓN, que no entran hasta que las aprobás.
+
+Sumar una habilidad nueva ya no requiere tocar este archivo: alcanza con que
+exista la carpeta con un skill.py válido. recargar() las relee en caliente.
 """
+import importlib
 import logging
+import os
+
+from nucleo.habilidades import contrato
 
 log = logging.getLogger("satella.habilidades")
 
-# Importá acá cada habilidad y sumala a la lista.
-from nucleo.habilidades.python import skill as habilidad_python
+_PAQUETE = "nucleo.habilidades"
+# Orden de prioridad: las más específicas / meta primero. El resto va después.
+_PRIORIDAD = ["creador", "mezclador", "planificador", "python"]
 
-_SKILLS = [
-    habilidad_python,
-    # nucleo.habilidades.calculo, nucleo.habilidades.internet, ... (futuro)
-]
+_SKILLS = []
+
+
+def _carpetas_habilidades():
+    import nucleo.habilidades as paquete
+    base = os.path.dirname(paquete.__file__)
+    for nombre in sorted(os.listdir(base)):
+        ruta = os.path.join(base, nombre)
+        if not os.path.isdir(ruta):
+            continue
+        if nombre.startswith("_") or nombre.startswith("."):
+            continue
+        if not os.path.exists(os.path.join(ruta, "skill.py")):
+            continue
+        yield nombre
+
+
+def _descubrir():
+    skills = []
+    for nombre in _carpetas_habilidades():
+        try:
+            mod = importlib.import_module(f"{_PAQUETE}.{nombre}.skill")
+        except Exception as e:
+            log.error(f"[HAB] no pude importar '{nombre}': {e}")
+            continue
+        ok, problemas = contrato.validar(mod)
+        if not ok:
+            log.error(f"[HAB] '{nombre}' no cumple el contrato: {problemas}")
+            continue
+        skills.append(mod)
+
+    def clave(m):
+        n = getattr(m, "NOMBRE", "")
+        if n in _PRIORIDAD:
+            return _PRIORIDAD.index(n)
+        # Las habilidades compuestas (creadas por el mezclador) van DESPUÉS de las
+        # meta pero ANTES que las atómicas: cuando reclaman un pedido multi-parte,
+        # le ganan a una habilidad atómica que solo cubriría una parte.
+        if getattr(m, "COMPUESTA", False):
+            return len(_PRIORIDAD)
+        return len(_PRIORIDAD) + 1
+
+    skills.sort(key=clave)
+    return skills
+
+
+def recargar():
+    """Relee todas las habilidades (útil tras aprobar una nueva)."""
+    global _SKILLS
+    importlib.invalidate_caches()
+    _SKILLS = _descubrir()
+    nombres = [getattr(s, "NOMBRE", "?") for s in _SKILLS]
+    log.info(f"[HAB] {len(_SKILLS)} habilidades activas: {nombres}")
+    return _SKILLS
+
+
+def habilidades() -> list:
+    return list(_SKILLS)
 
 
 def detectar_skill(texto: str, codigo_adjunto: str = ""):
@@ -30,3 +92,7 @@ def detectar_skill(texto: str, codigo_adjunto: str = ""):
         except Exception as e:
             log.error(f"[HAB] {getattr(s, 'NOMBRE', '?')} detecta() falló: {e}")
     return None
+
+
+# Descubrimiento inicial al importar el módulo.
+recargar()
