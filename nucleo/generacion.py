@@ -194,26 +194,40 @@ def generar(mensaje: str, comprension: dict, modelo, episodios, rag, historial) 
 
 def _envolver_en_voz(voz: str, mensaje: str, res: dict) -> str:
     """Toma el resultado técnico de una habilidad y le pone una intro en la voz de turno.
-    El cuerpo (código/análisis) queda EXACTO; solo la intro lleva personalidad."""
+    El cuerpo queda EXACTO; solo la intro lleva personalidad. Para el navegador la intro
+    es HONESTA: refleja el estado real y no puede inventar que algo salió bien."""
     resumen = res.get("resumen", "")
     cuerpo = res.get("cuerpo", "")
+    skill = res.get("skill", "")
     intro = ""
     if _groq_ok:
         try:
-            instr = (
-                _VOZ_INSTRUCCION.get(voz, "") + "\n\n"
-                + f'Sebas pidió algo de código: "{mensaje[:200]}". '
-                + f"Hiciste el trabajo con herramientas reales (no adivinaste) y el resultado es: {resumen} "
-                + "Escribí SOLO una intro de UNA oración, autocontenida, que anuncie ese resultado en tu voz. "
-                + "Tiene que cerrar sola (punto final), NO una pregunta ni una frase que dependa de lo que sigue abajo. "
-                + "NO reescribas el código ni el detalle técnico, NO expliques de más, NO empieces con 'Entiendo'. "
-                + 'Respondé SOLO JSON: {"voz":"' + voz + '","respuesta":"tu intro corta"}'
-            )
+            if skill == "navegador":
+                instr = (
+                    _VOZ_INSTRUCCION.get(voz, "") + "\n\n"
+                    + "Satella está operando un navegador web EN VIVO. El ESTADO REAL en este momento "
+                    + f'es exactamente: "{resumen}". '
+                    + "Escribí SOLO una intro de UNA oración, en tu voz, que refleje ESE estado y nada más. "
+                    + "PROHIBIDO inventar que iniciaste sesión, que encontraste o reprodujiste algo, que "
+                    + "una acción ya ocurrió, o hablar de 'código'. Si el estado es una pregunta o un pedido "
+                    + "de confirmación, tu intro NO puede afirmar que la acción se hizo. Cerrá con punto. "
+                    + 'Respondé SOLO JSON: {"voz":"' + voz + '","respuesta":"tu intro corta"}'
+                )
+            else:
+                instr = (
+                    _VOZ_INSTRUCCION.get(voz, "") + "\n\n"
+                    + f'Sebas pidió algo de código: "{mensaje[:200]}". '
+                    + f"Hiciste el trabajo con herramientas reales (no adivinaste) y el resultado es: {resumen} "
+                    + "Escribí SOLO una intro de UNA oración, autocontenida, que anuncie ese resultado en tu voz. "
+                    + "Tiene que cerrar sola (punto final), NO una pregunta ni una frase que dependa de lo que sigue abajo. "
+                    + "NO reescribas el código ni el detalle técnico, NO expliques de más, NO empieces con 'Entiendo'. "
+                    + 'Respondé SOLO JSON: {"voz":"' + voz + '","respuesta":"tu intro corta"}'
+                )
             resp = _client.chat.completions.create(
                 model=_MODEL,
                 messages=[{"role": "system", "content": _SISTEMA},
                           {"role": "user", "content": instr}],
-                max_tokens=300, temperature=0.7,
+                max_tokens=300, temperature=0.6,
             )
             _, intro = _parsear(resp.choices[0].message.content.strip())
         except Exception:

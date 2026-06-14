@@ -191,6 +191,13 @@
   .codeblock pre::-webkit-scrollbar { height: 6px; }
   .codeblock pre::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
   .codeblock code { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: transparent !important; padding: 0 !important; }
+  .codeblock.collapsed pre { display: none; }
+  .cb-title { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; flex: 1; min-width: 0; }
+  .cb-title:hover .cb-file { color: var(--accent); }
+  .cb-file { font-size: 11.5px; color: var(--txt); font-family: var(--mono); text-transform: none; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cb-meta { font-size: 10px; color: var(--txt2); }
+  .cb-toggle { color: var(--accent); font-size: 12px; transition: transform .15s; }
+  .codeblock:not(.collapsed) .cb-toggle { transform: rotate(90deg); }
 
   /* thinking */
   .thinking-row { display: flex; padding: 6px 24px; gap: 10px; max-width: 820px; margin: 0 auto; width: 100%; }
@@ -279,10 +286,25 @@
   </div>
 </div>
 
+<!-- PANEL NAVEGADOR EN VIVO -->
+<div id="nav-pane" style="display:none; position:fixed; right:16px; bottom:96px; width:430px; max-width:46vw;
+     background:var(--bg2); border:1px solid var(--border2); border-radius:12px; overflow:hidden;
+     box-shadow:0 14px 44px rgba(0,0,0,.55); z-index:60;">
+  <div id="nav-bar" style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px;
+       background:var(--bg3); border-bottom:1px solid var(--border); font-family:var(--mono); font-size:12px; cursor:move; user-select:none;">
+    <span id="nav-titulo" style="color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:330px;">🌐 navegador</span>
+    <button onclick="cerrarNavegador()" title="Salir del modo navegador"
+       style="background:none;border:none;color:var(--fg);cursor:pointer;font-size:14px;line-height:1;">✕</button>
+  </div>
+  <img id="nav-img" alt="navegador en vivo" style="display:block; width:100%; height:auto; background:#000; min-height:120px;"/>
+  <div id="nav-estado" style="padding:6px 12px; font-family:var(--mono); font-size:11px; color:rgba(180,140,255,0.6); border-top:1px solid var(--border); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">en vivo</div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script>
 const socket = io();
+console.log('%c Satella front v3 — tarjetas de archivo activas ', 'background:#4c1d95;color:#fff;padding:2px 6px;border-radius:4px;');
 
 // ── Estado ────────────────────────────────────────────────────
 let vozActiva = true, grabando = false, recognition = null, audioActual = null;
@@ -315,6 +337,49 @@ socket.on('satella_responde', ({ texto, audio, iniciacion, voz }) => {
 
 socket.on('sesion_cerrada', ({ resumen }) => { agregarMensaje('satella', '— sesión guardada —'); setStatus(''); });
 
+// ── Panel del navegador en vivo ──────────────────────────────
+const navPane   = document.getElementById('nav-pane');
+const navImg    = document.getElementById('nav-img');
+const navTitulo = document.getElementById('nav-titulo');
+const navEstado = document.getElementById('nav-estado');
+socket.on('navegador_frame', ({ img, estado }) => {
+  if (navPane.style.display === 'none') navPane.style.display = 'block';
+  if (img) navImg.src = 'data:image/jpeg;base64,' + img;
+  if (estado) {
+    navTitulo.textContent = '🌐 ' + (estado.title || estado.url || 'navegador');
+    navEstado.textContent = (estado.url || '') + (estado.modo ? '  ·  modo ' + estado.modo : '');
+  }
+});
+socket.on('navegador_cerrado', () => { navPane.style.display = 'none'; navImg.src = ''; });
+function cerrarNavegador() { socket.emit('mensaje', { texto: 'salí del modo navegador' }); }
+
+// ── Panel arrastrable ────────────────────────────────────────
+(function () {
+  const bar = document.getElementById('nav-bar');
+  let drag = false, ox = 0, oy = 0;
+  bar.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === 'BUTTON') return;     // no arrastrar al cerrar
+    const r = navPane.getBoundingClientRect();
+    navPane.style.left = r.left + 'px';
+    navPane.style.top = r.top + 'px';
+    navPane.style.right = 'auto';
+    navPane.style.bottom = 'auto';
+    ox = e.clientX - r.left;
+    oy = e.clientY - r.top;
+    drag = true;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!drag) return;
+    let x = e.clientX - ox, y = e.clientY - oy;
+    x = Math.max(0, Math.min(x, window.innerWidth - 80));
+    y = Math.max(0, Math.min(y, window.innerHeight - 40));
+    navPane.style.left = x + 'px';
+    navPane.style.top = y + 'px';
+  });
+  document.addEventListener('mouseup', () => { drag = false; });
+})();
+
 socket.on('voz_estado', ({ activa }) => {
   vozActiva = activa;
   vozBtn.className = 'btn-icon' + (activa ? ' active' : '');
@@ -322,9 +387,26 @@ socket.on('voz_estado', ({ activa }) => {
 });
 
 // ── Render de contenido: prosa + bloques de código (estilo Claude) ──
+function renderUsuario(container, texto) {
+  container.innerHTML = '';
+  // 1) bloques con fences ```
+  if (/```[\s\S]*?```/.test(texto)) {
+    return renderContenido(container, texto);
+  }
+  // 2) heurística: varias líneas con pinta de código → encapsular como bloque
+  const lineas = texto.split('\n');
+  const pistas = (texto.match(/(def |class |import |from |function |const |let |var |=>|#include|public |private |return |\{|\};)/g) || []).length;
+  if (lineas.length >= 5 && pistas >= 3) {
+    addCode(container, 'python', texto.replace(/\n+$/, ''));
+    return true;
+  }
+  addProse(container, texto);
+  return false;
+}
+
 function renderContenido(container, texto) {
   container.innerHTML = '';
-  const regex = /```(\w*)\r?\n([\s\S]*?)```/g;
+  const regex = /```(\w*)[^\S\r\n]*\r?\n?([\s\S]*?)```/g;
   let last = 0, m, tuvoCodigo = false;
   while ((m = regex.exec(texto)) !== null) {
     tuvoCodigo = true;
@@ -346,25 +428,87 @@ function addProse(container, txt) {
   container.appendChild(p);
 }
 
-function addCode(container, lang, code) {
-  const wrap = document.createElement('div'); wrap.className = 'codeblock';
-  const head = document.createElement('div'); head.className = 'cb-head';
-  const lbl  = document.createElement('span'); lbl.className = 'cb-lang'; lbl.textContent = lang || 'código';
-  const acts = document.createElement('div'); acts.className = 'cb-actions';
+function previewCodigo(lang, code) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(8,6,13,.85);z-index:9999;display:flex;'
+    + 'align-items:center;justify-content:center;padding:4vh 4vw;backdrop-filter:blur(4px);';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#0e0b16;border:1px solid #4c1d95;border-radius:14px;width:100%;'
+    + 'max-width:1000px;height:100%;display:flex;flex-direction:column;overflow:hidden;'
+    + 'box-shadow:0 20px 60px rgba(124,58,237,.35);';
+  const bar = document.createElement('div');
+  bar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;'
+    + 'border-bottom:1px solid #22142a;color:#c9b8e8;font-size:.85rem;';
+  const esWeb = /^(html|htm|xml|svg)$/i.test(lang || '');
+  bar.innerHTML = '<span>Preview · ' + (esWeb ? 'render en vivo' : (lang || 'código')) + '</span>';
+  const cerrar = document.createElement('button');
+  cerrar.textContent = '✕ Cerrar';
+  cerrar.style.cssText = 'background:#4c1d95;color:#fff;border:none;border-radius:8px;'
+    + 'padding:.35rem .8rem;cursor:pointer;font-size:.8rem;';
+  cerrar.onclick = () => ov.remove();
+  bar.appendChild(cerrar);
 
+  let cuerpo;
+  if (esWeb) {
+    cuerpo = document.createElement('iframe');
+    cuerpo.setAttribute('sandbox', 'allow-scripts');   // aislado: sin acceso a la app
+    cuerpo.style.cssText = 'flex:1;border:none;background:#fff;width:100%;';
+    cuerpo.srcdoc = code;
+  } else {
+    cuerpo = document.createElement('pre');
+    cuerpo.style.cssText = 'flex:1;overflow:auto;margin:0;padding:1rem;background:#08060d;';
+    const co = document.createElement('code');
+    co.className = 'language-' + (lang || 'plaintext');
+    co.textContent = code;
+    cuerpo.appendChild(co);
+    if (window.hljs) { try { hljs.highlightElement(co); } catch (e) {} }
+  }
+  box.appendChild(bar); box.appendChild(cuerpo);
+  ov.appendChild(box);
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  document.body.appendChild(ov);
+}
+
+function _extDe(lang) {
+  const map = { python: 'py', javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts',
+    html: 'html', htm: 'html', css: 'css', json: 'json', bash: 'sh', sh: 'sh',
+    sql: 'sql', java: 'java', go: 'go', rust: 'rs', rs: 'rs', c: 'c', cpp: 'cpp' };
+  return map[(lang || '').toLowerCase()] || 'txt';
+}
+
+function addCode(container, lang, code) {
+  const lineas = code.split('\n').length;
+  const ext = _extDe(lang);
+  const nombre = 'satella_' + (lang || 'codigo').toLowerCase() + '.' + ext;
+  const wrap = document.createElement('div'); wrap.className = 'codeblock';
+  if (lineas > 14) wrap.classList.add('collapsed');   // archivos largos: arrancan cerrados
+
+  const head = document.createElement('div'); head.className = 'cb-head';
+
+  // Título clickeable: abre/cierra el archivo
+  const title = document.createElement('div'); title.className = 'cb-title';
+  const tog = document.createElement('span'); tog.className = 'cb-toggle'; tog.textContent = '▸';
+  const file = document.createElement('span'); file.className = 'cb-file'; file.textContent = '📄 ' + nombre;
+  const meta = document.createElement('span'); meta.className = 'cb-meta'; meta.textContent = lineas + ' líneas';
+  title.appendChild(tog); title.appendChild(file); title.appendChild(meta);
+  title.onclick = () => wrap.classList.toggle('collapsed');
+
+  const acts = document.createElement('div'); acts.className = 'cb-actions';
   const bCopy = document.createElement('button'); bCopy.textContent = '⧉ Copiar';
-  bCopy.onclick = () => navigator.clipboard.writeText(code).then(() => {
+  bCopy.onclick = (e) => { e.stopPropagation(); navigator.clipboard.writeText(code).then(() => {
     bCopy.textContent = 'copiado ✓'; setTimeout(() => bCopy.textContent = '⧉ Copiar', 1400);
-  });
+  }); };
   const bDl = document.createElement('button'); bDl.textContent = '↓ Descargar';
-  bDl.onclick = () => {
-    const ext = (lang === 'python') ? 'py' : (lang === 'javascript' || lang === 'js') ? 'js' : 'txt';
+  bDl.onclick = (e) => { e.stopPropagation();
     const blob = new Blob([code], { type: 'text/plain' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = 'satella_codigo.' + ext; a.click(); URL.revokeObjectURL(a.href);
+    a.download = nombre; a.click(); URL.revokeObjectURL(a.href);
   };
-  acts.appendChild(bCopy); acts.appendChild(bDl);
-  head.appendChild(lbl); head.appendChild(acts);
+  const bPrev = document.createElement('button'); bPrev.textContent = '⛶ Preview';
+  bPrev.onclick = (e) => { e.stopPropagation(); previewCodigo(lang, code); };
+  acts.appendChild(bCopy); acts.appendChild(bDl); acts.appendChild(bPrev);
+
+  head.appendChild(title); head.appendChild(acts);
 
   const pre = document.createElement('pre'); const co = document.createElement('code');
   co.className = 'language-' + (lang || 'plaintext'); co.textContent = code;
@@ -392,7 +536,9 @@ function agregarMensaje(quien, texto, iniciacion = false, voz = null) {
     const tuvoCodigo = renderContenido(bubble, texto);
     if (tuvoCodigo) bubble.classList.add('has-code');
   } else {
-    bubble.textContent = texto;
+    // El usuario también: si pegó código (fences o pinta de código), lo encapsulamos.
+    const tuvoCodigo = renderUsuario(bubble, texto);
+    if (tuvoCodigo) bubble.classList.add('has-code');
   }
 
   const meta = document.createElement('div');

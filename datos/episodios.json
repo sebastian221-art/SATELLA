@@ -266,5 +266,190 @@
     "aprendi": "reflexión sobre motivación",
     "fecha": "2026-06-13T03:03:26.384445",
     "turnos": 1
+  },
+  {
+    "tema_principal": "números romanos, sentimiento",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "convertir años a números romanos",
+    "fecha": "2026-06-13T03:11:02.940386",
+    "turnos": 8
+  },
+  {
+    "tema_principal": "análisis web",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "obtener HTML de la URL solicitada",
+      "analizar contenido del repositorio GitHub"
+    ],
+    "aprendi": "no se puede acceder sin requests",
+    "fecha": "2026-06-13T09:20:46.672803",
+    "turnos": 7
+  },
+  {
+    "tema_principal": "GitHub repository",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "Revisar formularios",
+      "Verificar CSRF tokens",
+      "Documentar dependencias"
+    ],
+    "aprendi": "Bootstrap y React integrados",
+    "fecha": "2026-06-13T09:38:55.097512",
+    "turnos": 6
+  },
+  {
+    "tema_principal": "React Bootstrap",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "documentar los 3 formularios",
+      "optimizar carga de scripts",
+      "añadir pruebas unitarias"
+    ],
+    "aprendi": "integrar React con Bootstrap",
+    "fecha": "2026-06-13T09:48:40.508519",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "React Bootstrap",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir componentes faltantes"
+    ],
+    "aprendi": "necesito más personalización",
+    "fecha": "2026-06-13T10:41:54.965611",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "paquete requests",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "ambos",
+    "pendientes": [],
+    "aprendi": "requests requiere Python ≥3.10",
+    "fecha": "2026-06-13T10:49:06.907801",
+    "turnos": 8
+  },
+  {
+    "tema_principal": "motivación proyecto",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir objetivo del uso de requests",
+      "documentar beneficios esperados"
+    ],
+    "aprendi": "la motivación guía la dirección del proyecto",
+    "fecha": "2026-06-13T11:08:59.612299",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "rate limiter",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "control de tasa",
+    "fecha": "2026-06-13T11:28:50.552598",
+    "turnos": 9
+  },
+  {
+    "tema_principal": "RAG Satella",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "Implementar rate limiter",
+      "Integrar RAG"
+    ],
+    "aprendi": "Normalizar acentos y tokenizar",
+    "fecha": "2026-06-13T12:09:55.556136",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "abrir navegador",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "solucionar apertura del navegador"
+    ],
+    "aprendi": "no puedo abrir navegador",
+    "fecha": "2026-06-13T14:36:56.603698",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "motivación búsqueda",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "reflexionar sobre motivaciones al buscar",
+    "fecha": "2026-06-13T14:50:32.469603",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "motivación interna",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "definir objetivo claro"
+    ],
+    "aprendi": "explorar motivaciones revela dirección",
+    "fecha": "2026-06-14T03:54:59.141855",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "modo observador",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "ambos",
+    "pendientes": [
+      "activar modo observador",
+      "completar fase 4C",
+      "reproducir primer video"
+    ],
+    "aprendi": "modo observador aún no está construido",
+    "fecha": "2026-06-14T04:15:45.663134",
+    "turnos": 24
+  },
+  {
+    "tema_principal": "motivación interna",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "Importancia de la introspección",
+    "fecha": "2026-06-14T13:36:28.077514",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "revisión repositorio",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "Análisis completo del repositorio Satella"
+    ],
+    "aprendi": "Sebas busca feedback del repositorio",
+    "fecha": "2026-06-14T14:18:04.809678",
+    "turnos": 26
+  },
+  {
+    "tema_principal": "revisión código",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "Resolver comentarios",
+      "Merge a main"
+    ],
+    "aprendi": "Valor del feedback antes de merge",
+    "fecha": "2026-06-14T15:01:36.555628",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "objetivo personal",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "importancia de la motivación",
+    "fecha": "2026-06-14T16:03:35.959042",
+    "turnos": 1
   }
 ]

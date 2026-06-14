@@ -29,7 +29,16 @@ def _tiene(texto, claves):
     return any(k in t for k in claves)
 
 
+_VERBOS_COPIA = ("copiá", "copia", "copialo", "copiar", "reproducí", "reproduce",
+                 "reproducir", "recreá", "recrea", "replicá", "replica", "replicar",
+                 "imitá", "imita", "imitar", "cloná", "clona", "clonar", "reimplementá",
+                 "reimplementa")
+
+
 def es_peticion(texto, codigo_adjunto=""):
+    # Si hay intención de COPIAR, esto es para la habilidad copia, no para crear una skill.
+    if _tiene(texto, _VERBOS_COPIA):
+        return False
     if not menciona_habilidad(texto):
         return False
     return (_tiene(texto, _VERBOS_CREAR) or _tiene(texto, _VERBOS_APROBAR)

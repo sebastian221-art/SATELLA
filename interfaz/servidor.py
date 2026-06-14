@@ -15,6 +15,7 @@ from config import (HOST, PORT, VOZ_HABILITADA, MINUTOS_SILENCIO_INICIACION, SAT
 from nucleo import memoria, rag
 from nucleo.satella import procesar_mensaje, iniciar_conversacion, cerrar_sesion
 from interfaz.editor_backend import registrar_editor
+from nucleo.habilidades import navegador
 
 log = logging.getLogger("satella.servidor")
 
@@ -33,6 +34,7 @@ _estado = {
     "cliente_conectado": False,
     "voz_activa": VOZ_HABILITADA,
     "saludo_enviado": False,   # evita doble saludo en reconexión rápida
+    "nav_stream": False,       # ¿está corriendo el streaming del panel del navegador?
 }
 
 FRONTEND_PATH = os.path.join(SATELLA_ROOT, "interfaz", "frontend", "satella.html")
@@ -44,7 +46,11 @@ registrar_editor(app, socketio)
 @app.route('/')
 def index():
     with open(FRONTEND_PATH, encoding='utf-8') as f:
-        return render_template_string(f.read())
+        resp = app.make_response(render_template_string(f.read()))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @socketio.on('connect')
@@ -92,6 +98,22 @@ def on_disconnect():
         log.error(f"Error cerrando sesión: {e}")
 
 
+def _stream_navegador():
+    """Mientras el navegador esté vivo, emite la pantalla al panel de Satella (~1 fps)."""
+    _estado["nav_stream"] = True
+    log.info("[NAV] streaming del panel iniciado")
+    try:
+        while navegador.motor.activo():
+            b64 = navegador.motor.screenshot_b64()
+            if b64:
+                socketio.emit('navegador_frame', {'img': b64, 'estado': navegador.motor.estado()})
+            socketio.sleep(1.0)
+    finally:
+        _estado["nav_stream"] = False
+        socketio.emit('navegador_cerrado', {})
+        log.info("[NAV] streaming del panel detenido")
+
+
 @socketio.on('mensaje')
 def on_mensaje(data):
     _estado["ultimo_mensaje_ts"] = time.time()
@@ -113,6 +135,9 @@ def on_mensaje(data):
             'tono': resultado.get('tono', 'normal'),
             'voz': resultado.get('voz', 'echidna'),
         })
+        # Si el modo navegador quedó activo, arrancamos el streaming del panel en vivo.
+        if navegador.motor.activo() and not _estado["nav_stream"]:
+            socketio.start_background_task(_stream_navegador)
     except Exception as e:
         log.error(f"Error procesando mensaje: {e}")
         emit('satella_responde', {

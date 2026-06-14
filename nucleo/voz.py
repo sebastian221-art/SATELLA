@@ -51,11 +51,13 @@ def validar(respuesta: str, nombre_esperado: str) -> tuple[bool, str]:
 
 
 def limpiar(respuesta: str) -> str:
-    """Limpia frases problemáticas menores sin regenerar."""
+    """Limpieza ligera del texto que se MUESTRA. NO toca el espaciado: conserva
+    saltos de línea Y la indentación del código (Python depende de ella). El
+    aplastado a una línea para el TTS lo hace preparar_para_voz por separado."""
     for malo, bueno in _SUSTITUCION_FRASES.items():
         respuesta = re.sub(re.escape(malo), bueno, respuesta, flags=re.IGNORECASE)
-    respuesta = re.sub(r'\s+', ' ', respuesta).strip()
-    return respuesta
+    respuesta = re.sub(r'\n{4,}', '\n\n\n', respuesta)   # solo recorta excesos de líneas en blanco
+    return respuesta.strip()
 
 
 def preparar_para_voz(texto: str) -> str:

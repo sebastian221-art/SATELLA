@@ -21,7 +21,7 @@ log = logging.getLogger("satella.habilidades")
 
 _PAQUETE = "nucleo.habilidades"
 # Orden de prioridad: las más específicas / meta primero. El resto va después.
-_PRIORIDAD = ["creador", "mezclador", "planificador", "python"]
+_PRIORIDAD = ["gobernador", "navegador", "creador", "mezclador", "planificador", "copia", "analisis", "python"]
 
 _SKILLS = []
 

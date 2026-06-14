@@ -60,3 +60,25 @@ def chat(prompt: str, max_tokens: int = 1600, temperature: float = 0.3,
     except Exception as e:
         log.error(f"[PY] Groq falló: {e}")
         return ""
+
+
+def chat_meta(prompt: str, max_tokens: int = 1600, temperature: float = 0.3,
+              system: str = "Sos un ingeniero de software senior. Preciso, directo, en español (voseo)."):
+    """Como chat(), pero devuelve (contenido, truncado) — truncado=True si el modelo
+    cortó por el límite de tokens (finish_reason == 'length')."""
+    if not _ok:
+        return "", False
+    try:
+        resp = _client.chat.completions.create(
+            model=_MODEL,
+            messages=[{"role": "system", "content": system},
+                      {"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        choice = resp.choices[0]
+        truncado = (getattr(choice, "finish_reason", "") == "length")
+        return choice.message.content.strip(), truncado
+    except Exception as e:
+        log.error(f"[PY] Groq falló: {e}")
+        return "", False

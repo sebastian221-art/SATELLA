@@ -90,7 +90,8 @@ def _con_tmp(codigo: str, fn):
 def _correr_pyflakes(codigo: str) -> list:
     def fn(ruta):
         p = subprocess.run([sys.executable, "-m", "pyflakes", ruta],
-                           capture_output=True, text=True, timeout=10)
+                           capture_output=True, text=True, timeout=10,
+                           encoding="utf-8", errors="replace")
         out = (p.stdout + p.stderr).strip()
         prob = []
         for linea in out.splitlines():
@@ -105,7 +106,8 @@ def _correr_pyflakes(codigo: str) -> list:
 def _correr_ruff(codigo: str) -> list:
     def fn(ruta):
         p = subprocess.run(["ruff", "check", "--quiet", ruta],
-                           capture_output=True, text=True, timeout=10)
+                           capture_output=True, text=True, timeout=10,
+                           encoding="utf-8", errors="replace")
         out = (p.stdout + p.stderr).strip()
         prob = []
         for linea in out.splitlines():
