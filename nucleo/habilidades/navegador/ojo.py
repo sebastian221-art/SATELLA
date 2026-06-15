@@ -24,7 +24,22 @@ JS_EXTRAER = r"""
                e.getAttribute('placeholder') || e.getAttribute('title') || '').trim();
     return t.replace(/\s+/g, ' ').slice(0, 90);
   };
-  // limpiar marcas de una pasada anterior
+  // selector CSS estable (id si hay, si no ruta nth-of-type) — para repetir después
+  const cssEstable = (e) => {
+    if (e.id) return '#' + CSS.escape(e.id);
+    const path = []; let n = e, d = 0;
+    while (n && n.nodeType === 1 && d < 5) {
+      let s = n.tagName.toLowerCase();
+      const p = n.parentElement;
+      if (p) {
+        let i = 1, sib = n;
+        while (sib = sib.previousElementSibling) { if (sib.tagName === n.tagName) i++; }
+        s += ':nth-of-type(' + i + ')';
+      }
+      path.unshift(s); n = n.parentElement; d++;
+    }
+    return path.join(' > ');
+  };
   document.querySelectorAll('[data-sat]').forEach((e) => e.removeAttribute('data-sat'));
   const out = [];
   for (const e of document.querySelectorAll(sel)) {
@@ -34,7 +49,8 @@ JS_EXTRAER = r"""
     const tag = e.tagName.toLowerCase();
     let tipo = tag;
     if (tag === 'input') tipo = 'input:' + (e.type || 'text');
-    const o = { tag: tag, tipo: tipo, texto: etiqueta(e), selector: '[data-sat="' + i + '"]' };
+    const o = { tag: tag, tipo: tipo, texto: etiqueta(e),
+                selector: '[data-sat="' + i + '"]', css: cssEstable(e) };
     if (tag === 'a' && e.getAttribute('href')) o.href = e.getAttribute('href');
     out.push(o);
     if (out.length >= 60) break;

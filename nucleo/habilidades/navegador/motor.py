@@ -589,10 +589,10 @@ def detener_grabacion() -> list:
     return list(_pasos_grabados)
 
 
-def reproducir_pasos(pasos: list, variable: str = None) -> dict:
-    """Repite una receta. Self-heal: si el selector falla, prueba por texto.
-    Si se pasa `variable`, reemplaza el valor del PRIMER campo de texto grabado
-    (típicamente la barra de búsqueda) — eso hace la receta parametrizable."""
+def reproducir_pasos(pasos: list, variable: str = None, secreto: str = None) -> dict:
+    """Repite una receta o un camino aprendido. Self-heal: si el selector falla,
+    prueba por texto. `variable` reemplaza el primer campo de texto (parametrización).
+    `secreto` rellena el campo de contraseña (viene del llavero, nunca del chat)."""
     if not _activo:
         return {"ok": False, "razon": "El navegador no está abierto."}
 
@@ -625,27 +625,95 @@ def reproducir_pasos(pasos: list, variable: str = None) -> dict:
                             ok = False
                     hechos += 1 if ok else 0
                     fallidos += 0 if ok else 1
-                elif t == "input":
-                    if p.get("password"):
-                        pendientes_pw += 1
-                        continue
-                    # parametrización: el primer campo de texto recibe la variable
-                    valor = p.get("valor", "")
-                    if variable and not var_usada:
-                        valor = variable
-                        var_usada = True
+                elif t == "hover":
                     try:
-                        await _page.locator(p["selector"]).first.fill(valor, timeout=6000)
+                        await _hover_y_reproducir(_page, p.get("texto", ""))
                         hechos += 1
                     except Exception:
                         fallidos += 1
+                elif t == "tecla":
+                    await _page.keyboard.press(p.get("tecla", "Enter"))
+                    hechos += 1
+                elif t == "input":
+                    valor = p.get("valor", "")
+                    if p.get("password"):
+                        if secreto:
+                            valor = secreto
+                        else:
+                            pendientes_pw += 1
+                            continue
+                    elif variable and not var_usada:
+                        valor = variable
+                        var_usada = True
+                    ok = False
+                    for selk in (p.get("selector"), p.get("css")):
+                        if not selk:
+                            continue
+                        try:
+                            await _page.locator(selk).first.fill(valor, timeout=6000)
+                            ok = True
+                            break
+                        except Exception:
+                            continue
+                    hechos += 1 if ok else 0
+                    fallidos += 0 if ok else 1
                 await _page.wait_for_timeout(1100)
             except Exception:
                 fallidos += 1
         return {"hechos": hechos, "fallidos": fallidos, "pendientes_pw": pendientes_pw, "variable_aplicada": var_usada}
 
     try:
-        return {"ok": True, **_submit(_rep(), timeout=140)}
+        return {"ok": True, **_submit(_rep(), timeout=160)}
+    except Exception as e:
+        return {"ok": False, "razon": repr(e)}
+
+
+def leer_login_pagina() -> dict:
+    """Lee el usuario/email y la contraseña que el usuario escribió en la página actual
+    (del DOM del navegador, nunca del chat) para poder guardarlos cifrados."""
+    if not _activo:
+        return {"ok": False}
+
+    async def _read():
+        return await _page.evaluate(
+            """() => {
+                const pw = document.querySelector('input[type=password]');
+                let user = '';
+                const cands = Array.from(document.querySelectorAll('input[type=email], input[type=text], input:not([type])'));
+                for (const c of cands) { if (c.value && c.offsetWidth>0) { user = c.value; break; } }
+                return { usuario: user, contrasena: pw ? pw.value : '' };
+            }"""
+        )
+
+    try:
+        r = _submit(_read(), timeout=10)
+        return {"ok": bool(r.get("contrasena")), **r}
+    except Exception:
+        return {"ok": False}
+
+
+def rellenar_login(usuario: str, contrasena: str) -> dict:
+    """Rellena los campos de usuario y contraseña de la página actual (para autologin)."""
+    if not _activo:
+        return {"ok": False, "razon": "navegador cerrado"}
+
+    async def _fill():
+        try:
+            await _descartar_overlays(_page)
+        except Exception:
+            pass
+        u = _page.locator('input[type=email], input[type=text], input:not([type])').first
+        try:
+            await u.fill(usuario, timeout=5000)
+        except Exception:
+            pass
+        p = _page.locator('input[type=password]').first
+        await p.fill(contrasena, timeout=5000)
+        return True
+
+    try:
+        _submit(_fill(), timeout=15)
+        return {"ok": True}
     except Exception as e:
         return {"ok": False, "razon": repr(e)}
 

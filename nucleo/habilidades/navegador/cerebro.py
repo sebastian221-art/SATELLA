@@ -72,7 +72,7 @@ _SISTEMA = (
 )
 
 _FORMATO = (
-    '{"accion":"clic|clic_texto|hover|escribir|tecla|navegar|scroll|esperar|responder|preguntar|terminar",'
+    '{"accion":"clic|clic_texto|hover|escribir|tecla|navegar|scroll|esperar|login|responder|preguntar|terminar",'
     '"indice":<n o null>,"texto":"<para escribir, o el TEXTO VISIBLE a clickear/hover>",'
     '"tecla":"<ej Enter>","url":"<si navegás>","sensible":<true|false>,"razon":"<corto>",'
     '"mensaje":"<para el usuario si respondés/preguntás/terminás>","listo":<true|false>}'
@@ -87,15 +87,32 @@ def _prompt_paso(objetivo, resumen, elementos, historial, nota="", con_vision=Fa
     lista = ojo.formatear(elementos, limite=45)
     hist = "\n".join(f"  {i + 1}. {h}" for i, h in enumerate(historial[-12:])) if historial else "  (ninguno todavía)"
     extra = f"\n⚠ NOTA: {nota}\n" if nota else ""
+    cred_txt = ""
+    try:
+        from . import credenciales
+        import re as _re
+        m = _re.search(r"https?://([^/]+)", url or "")
+        dom = m.group(1).replace("www.", "").lower() if m else ""
+        if dom and credenciales.existe(dom):
+            cred_txt = ("\nTENÉS credenciales guardadas para este sitio: para iniciar sesión usá la "
+                        "acción \"login\" (rellena usuario y contraseña desde el llavero y envía sola, "
+                        "sin que pidas la clave).\n")
+    except Exception:
+        pass
     vision_txt = (
         "MIRÁS una CAPTURA REAL de la página. Sobre cada elemento clickeable hay un número "
         "rojo [N] que coincide con el índice de la lista de abajo. Usá lo que VES para decidir: "
         "si ves el botón de reproducir, el episodio correcto, un banner que tapa, etc., elegí su "
         "número. Podés ver cosas que NO están en la lista de texto — confiá en la imagen.\n\n"
     ) if con_vision else ""
+    try:
+        from . import conocimiento
+        saber = conocimiento.para_prompt(url) + "\n"
+    except Exception:
+        saber = ""
     return (
-        vision_txt +
-        f"OBJETIVO DEL USUARIO:\n{objetivo}\n{extra}\n"
+        vision_txt + saber +
+        f"OBJETIVO DEL USUARIO:\n{objetivo}\n{extra}{cred_txt}\n"
         f"PÁGINA ACTUAL\nurl: {url}\ntítulo: {title}\nencabezados: {heads}\n"
         f"texto (recorte): {texto}\n\n"
         f"ELEMENTOS ACCIONABLES (elegí por índice):\n{lista}\n\n"
@@ -160,6 +177,18 @@ def _ejecutar(accion, plan, elementos):
         if not txt:
             return {"ok": False, "razon": "hover sin texto"}
         return motor.agente_accion("hover", texto=txt)
+    if accion == "login":
+        from . import credenciales
+        dom = _dom_actual()
+        cred = credenciales.obtener(dom)
+        if not cred:
+            return {"ok": False, "razon": "sin credencial guardada"}
+        motor.rellenar_login(cred["usuario"], cred["contrasena"])
+        for envio in ("Iniciar sesión", "Iniciar Sesión", "Acceder", "Entrar", "Log in", "Sign in"):
+            r = motor.agente_accion("clic_texto", texto=envio)
+            if r.get("ok"):
+                break
+        return {"ok": True}
     idx = plan.get("indice")
     if idx is None or not isinstance(idx, int) or idx < 0 or idx >= len(elementos):
         return {"ok": False, "razon": f"índice fuera de rango ({idx})"}
@@ -169,6 +198,33 @@ def _ejecutar(accion, plan, elementos):
     if accion == "escribir":
         return motor.agente_accion("escribir", selector=sel, texto=plan.get("texto", ""))
     return {"ok": False, "razon": f"acción desconocida: {accion}"}
+
+
+def _dom_actual():
+    import re
+    m = re.search(r"https?://([^/]+)", motor.estado().get("url", "") or "")
+    return (m.group(1).replace("www.", "").lower() if m else "")
+
+
+def _paso_repetible(accion, plan, elementos):
+    """Convierte una acción del agente en un paso que la memoria pueda repetir solo
+    (por texto/selector estable), o None si no aplica."""
+    if accion == "navegar":
+        return {"tipo": "navegar", "url": plan.get("url", "")}
+    if accion == "clic_texto":
+        return {"tipo": "click", "texto": plan.get("texto", "")}
+    if accion == "hover":
+        return {"tipo": "hover", "texto": plan.get("texto", "")}
+    if accion == "tecla":
+        return {"tipo": "tecla", "tecla": plan.get("tecla", "Enter")}
+    idx = plan.get("indice")
+    if isinstance(idx, int) and 0 <= idx < len(elementos):
+        el = elementos[idx]
+        if accion == "clic":
+            return {"tipo": "click", "selector": el.get("css"), "texto": el.get("texto", "")}
+        if accion == "escribir":
+            return {"tipo": "input", "css": el.get("css"), "valor": plan.get("texto", "")}
+    return None
 
 
 def _detalle(accion, plan):
@@ -245,6 +301,29 @@ def ejecutar(texto, emitir=None):
     # tarea nueva
     _sesion["objetivo"] = t
     _sesion["autorizado"] = False
+
+    # ¿ya aprendí a hacer esto en este sitio? → lo repito solo (sin pensar)
+    try:
+        from . import memoria
+        url_actual = motor.estado().get("url", "")
+        aprendido = memoria.recordar(t, url_actual)
+    except Exception:
+        aprendido = None
+    if aprendido:
+        log.info(f"[NAV] repito de memoria ({aprendido['score']}): {aprendido['objetivo'][:50]}")
+        if emitir:
+            emitir("repitiendo lo que ya aprendí acá…")
+        r = motor.reproducir_pasos(aprendido["pasos"])
+        if r.get("ok") and r.get("fallidos", 0) == 0 and r.get("hechos", 0) > 0:
+            try:
+                memoria.aprender(t, aprendido["pasos"], motor.estado().get("url", ""))  # refuerzo
+            except Exception:
+                pass
+            return {"ok": True, "resumen": "Lo hice de memoria.",
+                    "cuerpo": f"Esto ya lo sabía hacer acá, así que lo repetí solo ({r.get('hechos')} pasos). "
+                              "Mirá el panel."}
+        log.info("[NAV] el camino aprendido falló — sigo con el agente y reaprendo")
+
     return _correr(emitir)
 
 
@@ -256,6 +335,7 @@ def _correr(emitir=None, nota="", max_pasos=_MAX_PASOS):
     repetidos = 0
     huella_previa = None
     ultima_accion = None
+    camino = []          # pasos repetibles que fueron funcionando (para aprender)
 
     for paso in range(max_pasos):
         resumen = motor.resumen()
@@ -322,6 +402,12 @@ def _correr(emitir=None, nota="", max_pasos=_MAX_PASOS):
 
         if accion == "terminar" or (plan.get("listo") and accion not in ("preguntar", "responder")):
             _recordar(f"terminado: {plan.get('mensaje', '')[:60]}")
+            if camino:                              # aprendo el camino que funcionó
+                try:
+                    from . import memoria
+                    memoria.aprender(objetivo, camino, motor.estado().get("url", ""))
+                except Exception as e:
+                    log.error(f"[NAV] no pude aprender el camino: {e}")
             return {"ok": True, "resumen": "Tarea cumplida.",
                     "cuerpo": plan.get("mensaje") or "Listo, lo hice. Mirá el panel."}
 
@@ -343,6 +429,16 @@ def _correr(emitir=None, nota="", max_pasos=_MAX_PASOS):
         _recordar(f"{_detalle(accion, plan)} → {'ok' if r.get('ok') else 'falló: ' + r.get('razon', '')}")
         if r.get("ok"):
             fallos = 0
+            paso_rep = _paso_repetible(accion, plan, elementos)
+            if paso_rep:
+                camino.append(paso_rep)
+            if accion == "hover":          # descubrió que acá el hover revela controles
+                try:
+                    from . import conocimiento
+                    conocimiento.anotar(_dom_actual(),
+                                        "Pasar el mouse (hover) sobre una tarjeta revela el botón de reproducir.")
+                except Exception:
+                    pass
         else:
             fallos += 1
             if fallos >= 3:

@@ -116,6 +116,35 @@ def intencion(texto):
     if any(k in t for k in ("dónde estás", "donde estas", "en qué página", "en que pagina")):
         return ("estado", None)
 
+    # ── Credenciales seguras (llavero) ──
+    if any(k in t for k in ("qué logins", "que logins", "qué credenciales", "que credenciales",
+                            "qué contraseñas", "que contrasenas", "logins guardados", "credenciales guardadas",
+                            "logins tenés", "logins tenes")):
+        return ("credenciales", None)
+    if (("login" in t or "contraseñ" in t or "contrasen" in t or "credencial" in t or "clave" in t)
+            and any(v in t for v in ("borrá", "borra", "olvidá", "olvida", "elimina", "eliminá", "quitá", "quita"))):
+        m = re.search(r"(?:de|del|para|en)\s+([\w.-]+)", texto, re.I)
+        return ("credencial_borrar", (m.group(1).strip() if m else None))
+    # guardar: "guardá mi login/contraseña de X" — la clave la lee del NAVEGADOR, no del chat
+    if (("login" in t or "contraseñ" in t or "contrasen" in t or "credencial" in t or "clave" in t or "usuario" in t)
+            and any(v in t for v in ("guardá", "guarda", "guardar", "record", "memoriz", "acord", "anotá", "anota"))):
+        m = re.search(r"(?:de|del|para|en)\s+([\w.-]+)", texto, re.I)
+        return ("credencial_guardar", (m.group(1).strip() if m else None))
+    # ── Memoria de navegación ──
+    if any(k in t for k in ("qué aprendiste", "que aprendiste", "qué sabés navegar", "que sabes navegar",
+                            "qué tenés en memoria", "que tenes en memoria", "qué procesos", "que procesos")):
+        return ("memoria_lista", None)
+    # ── Conocimiento del mundo web ──
+    # enseñar: "recordá que en crunchyroll los episodios están abajo"
+    m = re.search(r"(?:record[aá]|acord[aá]te|anot[aá]|ten[ée] en cuenta)\s+que\s+(?:en|para|de|del)\s+([\w.-]+)[,:\s]+(.+)$", texto, re.I)
+    if m:
+        return ("conocimiento_enseñar", {"dominio": m.group(1).strip(), "nota": m.group(2).strip()})
+    # preguntar: "qué sabés de netflix" / "qué conocés del internet"
+    if any(k in t for k in ("qué sabés de", "que sabes de", "qué conocés de", "que conoces de",
+                            "qué sabés del", "que sabes del", "conocimiento de", "qué sabés sobre", "que sabes sobre")):
+        m = re.search(r"(?:de|del|sobre)\s+([\w.-]+)", texto, re.I)
+        return ("conocimiento_ver", (m.group(1).strip() if m else None))
+
     # ── Observador / recetas (Fase 4C) ──
     # 1) GUARDAR: "guardar + receta/grabación" (con o sin "la"), o frases de cierre con guardado
     _stop_guarda = ("terminá de observar", "termina de observar", "listo, guardá", "listo guarda",

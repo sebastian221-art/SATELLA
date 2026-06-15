@@ -134,6 +134,96 @@ def manejar(texto, contexto=None):
         return contrato.resultado(NOMBRE, "navegador", "Estado del navegador.",
                                   f"Activo · {st.get('title','')} — {st.get('url','')}", ok=True)
 
+    # ── Credenciales seguras (llavero del sistema) ─────────────────────────
+    if accion == "credencial_guardar":
+        from . import credenciales
+        if not credenciales.disponible():
+            return contrato.resultado(NOMBRE, "navegador", "No tengo llavero disponible.",
+                                      "El llavero del sistema no está accesible. Instalá el paquete «keyring» "
+                                      "(pip install keyring) y reintentá.", ok=True)
+        datos = motor.leer_login_pagina()
+        if not datos.get("ok"):
+            return contrato.resultado(NOMBRE, "navegador", "No veo un login en la página.",
+                                      "Escribí tu usuario y contraseña en el formulario del navegador (no acá "
+                                      "en el chat), y después decime «guardá mi login de _sitio_».", ok=True)
+        dom = arg or motor.estado().get("url", "")
+        r = credenciales.guardar(dom, datos.get("usuario", ""), datos.get("contrasena", ""))
+        if not r.get("ok"):
+            return contrato.resultado(NOMBRE, "navegador", "No pude guardar.",
+                                      f"Falló guardar la credencial: {r.get('razon','')}", ok=True)
+        return contrato.resultado(NOMBRE, "navegador", "Login guardado de forma segura.",
+                                  f"🔐 Guardé tu login de **{r['dominio']}** en el llavero del sistema "
+                                  f"(usuario: {r.get('usuario') or '—'}). La contraseña quedó cifrada por Windows, "
+                                  "nunca pasó por el chat. Ahora puedo iniciar sesión sola cuando lo pidas.", ok=True)
+
+    if accion == "credencial_borrar":
+        from . import credenciales
+        r = credenciales.borrar(arg or "")
+        if not r.get("ok"):
+            return contrato.resultado(NOMBRE, "navegador", "No encontré esa credencial.",
+                                      f"No tengo guardado un login de «{arg}».", ok=True)
+        return contrato.resultado(NOMBRE, "navegador", "Credencial borrada.",
+                                  f"🗑️ Borré tu login de **{r['dominio']}** del llavero.", ok=True)
+
+    if accion == "credenciales":
+        from . import credenciales
+        cs = credenciales.listar()
+        if not cs:
+            return contrato.resultado(NOMBRE, "navegador", "No tengo logins guardados.",
+                                      "Todavía no guardé ninguno. Iniciá sesión en un sitio y decime "
+                                      "«guardá mi login de _sitio_».", ok=True)
+        lineas = "\n".join(f"• **{c['dominio']}** (usuario: {c['usuario']})" for c in cs)
+        return contrato.resultado(NOMBRE, "navegador", f"Tengo {len(cs)} login(s) guardado(s).",
+                                  "Logins en el llavero (sin mostrar contraseñas):\n\n" + lineas, ok=True)
+
+    # ── Memoria de navegación (lo aprendido) ───────────────────────────────
+    if accion == "memoria_lista":
+        from . import memoria
+        ms = memoria.listar()
+        if not ms:
+            return contrato.resultado(NOMBRE, "navegador", "Todavía no aprendí procesos.",
+                                      "Cada vez que complete una tarea, la guardo y la repito sola la próxima. "
+                                      "Pedime algo y empiezo a aprender.", ok=True)
+        lineas = "\n".join(f"• **{m['dominio']}**: {m['objetivo'][:60]} ({m['pasos']} pasos, {m['exitos']}x)" for m in ms[:20])
+        return contrato.resultado(NOMBRE, "navegador", f"Aprendí {len(ms)} proceso(s).",
+                                  "Esto ya lo sé hacer solo (lo repito cuando lo pidas):\n\n" + lineas, ok=True)
+
+    # ── Conocimiento del mundo web ─────────────────────────────────────────
+    if accion == "conocimiento_enseñar":
+        from . import conocimiento
+        dom = arg.get("dominio") if isinstance(arg, dict) else None
+        nota = arg.get("nota") if isinstance(arg, dict) else None
+        r = conocimiento.anotar(dom, nota)
+        if not r.get("ok"):
+            return contrato.resultado(NOMBRE, "navegador", "No pude anotar eso.",
+                                      "Decímelo así: «recordá que en _sitio_, _lo que sea_».", ok=True)
+        if r.get("ya_sabia"):
+            return contrato.resultado(NOMBRE, "navegador", "Eso ya lo sabía.",
+                                      f"Ya tenía esa nota sobre {dom}.", ok=True)
+        return contrato.resultado(NOMBRE, "navegador", "Anotado.",
+                                  f"🧠 Aprendido sobre **{r['dominio']}**: «{nota}». Lo voy a tener en cuenta "
+                                  "cada vez que navegue ahí.", ok=True)
+
+    if accion == "conocimiento_ver":
+        from . import conocimiento
+        if not arg:
+            todo = conocimiento.listar()
+            if not todo:
+                return contrato.resultado(NOMBRE, "navegador", "Sé lo básico del internet.",
+                                          "Tengo el conocimiento general de la web. Preguntame por un sitio: "
+                                          "«qué sabés de netflix».", ok=True)
+            doms = ", ".join(todo.keys())
+            return contrato.resultado(NOMBRE, "navegador", "Sitios que conozco.",
+                                      f"Conozco: {doms}. Preguntame por uno: «qué sabés de crunchyroll».", ok=True)
+        notas = conocimiento.de_dominio(arg)
+        if not notas:
+            return contrato.resultado(NOMBRE, "navegador", f"De {arg} todavía no sé nada particular.",
+                                      "Uso mi conocimiento general. Enseñame: «recordá que en "
+                                      f"{arg}, _lo que sea_».", ok=True)
+        lineas = "\n".join(f"• {n}" for n in notas)
+        return contrato.resultado(NOMBRE, "navegador", f"Lo que sé de {arg}:",
+                                  f"Sobre **{arg}**:\n\n" + lineas, ok=True)
+
     # ── Modo observador + recetas (Fase 4C) ───────────────────────────────
     if accion == "observador_iniciar":
         from . import observador
