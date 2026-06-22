@@ -21,7 +21,11 @@ log = logging.getLogger("satella.habilidades")
 
 _PAQUETE = "nucleo.habilidades"
 # Orden de prioridad: las más específicas / meta primero. El resto va después.
-_PRIORIDAD = ["gobernador", "navegador", "creador", "mezclador", "planificador", "copia", "analisis", "python"]
+# 'agente_codigo' va ANTES que 'copia', 'analisis' y 'python': una MISIÓN sobre
+# un proyecto (o un "cloná …") la toma el agente, no el analizador ni la skill
+# de código suelta. Un snippet suelto ("escribime una función") sigue yendo a 'python'.
+_PRIORIDAD = ["gobernador", "navegador", "creador", "mezclador", "planificador",
+              "agente_codigo", "copia", "analisis", "python"]
 
 _SKILLS = []
 

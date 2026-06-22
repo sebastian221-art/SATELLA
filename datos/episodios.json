@@ -460,5 +460,47 @@
     "aprendi": "entender mi verdadera motivación",
     "fecha": "2026-06-14T22:10:52.061274",
     "turnos": 2
+  },
+  {
+    "tema_principal": "conversación Satella",
+    "estado_sebastian": "normal",
+    "proyecto_activo": null,
+    "pendientes": [],
+    "aprendi": null,
+    "fecha": "2026-06-15T03:23:46.509462",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "prioridad tareas",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "editar main.py para manejar prioridad y orden"
+    ],
+    "aprendi": "agregar prioridad y ordenar al listar",
+    "fecha": "2026-06-15T11:31:37.753316",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "notas etiquetas",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "ambos",
+    "pendientes": [],
+    "aprendi": "prioridad en tareas y notas con etiquetas",
+    "fecha": "2026-06-15T11:54:54.615402",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "etiquetas proyecto",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "cerrar misión",
+      "aprender proceso",
+      "revisar etiquetas"
+    ],
+    "aprendi": "etiquetas no sustituyen acción",
+    "fecha": "2026-06-15T18:36:23.704697",
+    "turnos": 10
   }
 ]
