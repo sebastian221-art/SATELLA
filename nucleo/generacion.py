@@ -215,6 +215,15 @@ def generar(mensaje: str, comprension: dict, modelo, episodios, rag, historial) 
 
     contexto = _bloque_contexto(modelo, episodios, rag)
 
+    # Coral: recuerdo por CONEXIÓN — el subgrafo conectado a lo que se habla.
+    try:
+        from nucleo import coral as _coral
+        _conex = _coral.como_texto(_coral.recordar(mensaje))
+        if _conex:
+            contexto = (contexto + "\n\n" + _conex) if contexto else _conex
+    except Exception as _e:
+        log.debug(f"[GEN] coral recall omitido: {_e}")
+
     messages = [{"role": "system", "content": _SISTEMA}]
     messages += _FEWSHOT
     if contexto:

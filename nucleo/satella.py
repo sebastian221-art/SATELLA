@@ -116,5 +116,12 @@ def cerrar_sesion() -> dict:
     # Aprendizaje del SISTEMA: Satella aprende cosas nuevas de Sebas y las acumula.
     generacion.actualizar_modelo_sebas(historial)
 
+    # Coral: tejer los conceptos de esta sesión en el grafo de memoria.
+    try:
+        from nucleo import coral
+        coral.aprender_de_sesion(historial)
+    except Exception as e:
+        log.error(f"Coral: no pude aprender de la sesión: {e}")
+
     log.info(f"Sesión cerrada | tema: {resumen.get('tema_principal','?')}")
     return resumen

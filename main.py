@@ -28,6 +28,8 @@ def main():
     log.info("Cargando memoria...")
     from nucleo import memoria
     memoria.inicializar()
+    from nucleo import coral
+    coral.inicializar()
 
     log.info("Cargando RAG...")
     from nucleo import rag
