@@ -42,6 +42,11 @@ FRONTEND_PATH = os.path.join(SATELLA_ROOT, "interfaz", "frontend", "satella.html
 # Fase 2A: ruta /editor + eventos del editor de código.
 registrar_editor(app, socketio)
 
+# Canal de progreso: las habilidades lentas (Claude Code) avisan "sigo trabajando"
+# y el mensaje llega al chat en vivo (evento 'satella_progreso').
+from nucleo import progreso
+progreso.set_sink(lambda txt: socketio.emit('satella_progreso', {'texto': txt}))
+
 
 @app.route('/')
 def index():

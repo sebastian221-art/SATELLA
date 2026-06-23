@@ -27,7 +27,14 @@ def _t(s):
 
 
 def detecta(texto, codigo_adjunto=""):
-    return any(g in _t(texto) for g in _GATILLOS)
+    t = _t(texto)
+    # "aprobá/activá la HABILIDAD X" es para el CREADOR, no para el gobernador
+    # (el gobernador aprueba TOKENS de confirmación, no habilidades).
+    if any(h in t for h in ("habilidad", "skill")) and \
+       any(a in t for a in ("aprobá", "aproba", "apruebo", "aprobar",
+                            "activá", "activa", "activar")):
+        return False
+    return any(g in t for g in _GATILLOS)
 
 
 def intencion(texto):

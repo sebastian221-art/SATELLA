@@ -329,6 +329,8 @@ socket.on('satella_pensando', ({ estado }) => {
   else { avatarEl.classList.remove('thinking'); ocultarThinking(); setStatus(''); }
 });
 
+socket.on('satella_progreso', ({ texto }) => { setStatus(texto || ''); });
+
 socket.on('satella_responde', ({ texto, audio, iniciacion, voz }) => {
   ocultarThinking(); avatarEl.classList.remove('thinking'); setStatus('');
   agregarMensaje('satella', texto, iniciacion, voz);

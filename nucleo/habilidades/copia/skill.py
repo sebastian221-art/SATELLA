@@ -60,6 +60,20 @@ def manejar(texto, contexto=None):
     # 5) VERIFICAR
     verif = verificador.verificar(codigo) if codigo else {"sintaxis_ok": False, "error": "sin código"}
 
+    # 5b) AUTO-CORRECCIÓN: si no ejecuta limpio (y no es código de servicio), corregir una vez.
+    if codigo and not verif.get("largo") and (
+        verif.get("sintaxis_ok") is False or verif.get("ejecuta") is False
+    ):
+        error = verif.get("error") or "el código no ejecutó limpio"
+        corregido = generador.refinar(objetivo, codigo, contrato_txt, decision, error)
+        if corregido and corregido.strip() and corregido != codigo:
+            verif2 = verificador.verificar(corregido)
+            # Nos quedamos con el corregido si mejoró (compila, o ahora ejecuta)
+            mejoro = (verif2.get("sintaxis_ok") and not verif.get("sintaxis_ok")) or \
+                     (verif2.get("ejecuta") and not verif.get("ejecuta"))
+            if mejoro:
+                codigo, verif = corregido, verif2
+
     # 6) FIDELIDAD
     fid = reporte.fidelidad(objetivo, contrato_txt, decision, codigo, verif) or \
         reporte.fidelidad_heuristica(decision, verif)
@@ -72,7 +86,9 @@ def manejar(texto, contexto=None):
         f"── Estrategia ──\n{decision['estrategia']}: {decision['razon']}",
     ]
     if codigo:
-        partes.append("── Equivalente para Satella ──\n```python\n" + codigo + "\n```")
+        fuente = generador.fuente_usada()
+        nota_fuente = f" (generado por {fuente})" if fuente else ""
+        partes.append("── Equivalente para Satella" + nota_fuente + " ──\n```python\n" + codigo + "\n```")
         partes.append("── Verificación ──\n" + verificador.como_texto(verif))
     partes.append("── Fidelidad ──\n" + fid)
 

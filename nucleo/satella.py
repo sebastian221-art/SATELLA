@@ -71,7 +71,7 @@ def procesar_mensaje(mensaje: str, voz_habilitada: bool = True) -> dict:
     # ── Capa 6: Voz ─────────────────────────────────────────────
     audio_b64 = None
     if voz_habilitada:
-        audio_b64 = voz.sintetizar_voz(respuesta)
+        audio_b64 = voz.sintetizar_voz(respuesta, voz=voz_usada, emocion=comp.get("tono"))
 
     return {
         "respuesta": respuesta,
@@ -94,7 +94,7 @@ def iniciar_conversacion(voz_habilitada: bool = True) -> dict:
 
     audio_b64 = None
     if voz_habilitada:
-        audio_b64 = voz.sintetizar_voz(respuesta)
+        audio_b64 = voz.sintetizar_voz(respuesta, voz=getattr(generacion, "ultima_voz", "echidna"))
 
     return {
         "respuesta": respuesta,

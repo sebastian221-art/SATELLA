@@ -1,74 +1,42 @@
 """
 nucleo/habilidades/python/ejecutor.py
-Ejecuta código Python en un subproceso aislado, con guardia de seguridad y timeout.
-Lo que ningún LLM puede hacer: ver el output REAL.
-Corre en la máquina de Sebas → la guardia es para evitar accidentes, no ataques.
+Ejecuta código Python para ver su output REAL — lo que ningún LLM puede hacer.
+Ahora corre EN EL SANDBOX compartido (nucleo/sandbox.py): aislado en carpeta
+temporal, con entorno SIN secretos (no fuga API keys), guardia estática ampliada
+(archivos, red, subprocesos, código dinámico) y timeout.
+
+Mantiene la interfaz de siempre: {ok, stdout, stderr, tiempo_ms, bloqueado}.
 """
-import ast
-import os
-import subprocess
-import sys
-import tempfile
 import time
 
-_LLAMADAS_BLOQUEADAS = {"eval", "exec", "compile", "__import__"}
-_ATRIBUTOS_PELIGROSOS = {
-    ("os", "system"), ("os", "remove"), ("os", "rmdir"), ("os", "unlink"),
-    ("shutil", "rmtree"), ("shutil", "move"),
-    ("subprocess", "call"), ("subprocess", "run"), ("subprocess", "Popen"),
-}
+from nucleo import sandbox
 
 _TIMEOUT = 8
 _MAX_OUT = 8000
-
-
-def _es_seguro(codigo: str):
-    try:
-        arbol = ast.parse(codigo)
-    except SyntaxError as e:
-        return False, f"Sintaxis: {e.msg} (línea {e.lineno})"
-    for nodo in ast.walk(arbol):
-        if isinstance(nodo, ast.Call):
-            f = nodo.func
-            if isinstance(f, ast.Name) and f.id in _LLAMADAS_BLOQUEADAS:
-                return False, f"Operación bloqueada por seguridad: {f.id}()"
-            if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name):
-                if (f.value.id, f.attr) in _ATRIBUTOS_PELIGROSOS:
-                    return False, f"Operación bloqueada por seguridad: {f.value.id}.{f.attr}()"
-    return True, ""
 
 
 def ejecutar(codigo: str, timeout: int = _TIMEOUT) -> dict:
     if not codigo or not codigo.strip():
         return {"ok": False, "stdout": "", "stderr": "No hay código.", "tiempo_ms": 0, "bloqueado": False}
 
-    seguro, razon = _es_seguro(codigo)
-    if not seguro:
-        return {"ok": False, "stdout": "", "stderr": razon, "tiempo_ms": 0, "bloqueado": True}
+    t0 = time.time()
+    r = sandbox.ejecutar_seguro(codigo, timeout=timeout)
+    ms = int((time.time() - t0) * 1000)
 
-    ruta = None
-    try:
-        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
-            f.write(codigo)
-            ruta = f.name
-        t0 = time.time()
-        p = subprocess.run([sys.executable, ruta], capture_output=True, text=True, timeout=timeout)
-        ms = int((time.time() - t0) * 1000)
-        return {
-            "ok": p.returncode == 0,
-            "stdout": p.stdout[:_MAX_OUT],
-            "stderr": p.stderr[:4000],
-            "tiempo_ms": ms,
-            "bloqueado": False,
-        }
-    except subprocess.TimeoutExpired:
-        return {"ok": False, "stdout": "", "stderr": f"Se pasó del límite de {timeout}s (¿bucle infinito?).",
-                "tiempo_ms": timeout * 1000, "bloqueado": False}
-    except Exception as e:
-        return {"ok": False, "stdout": "", "stderr": str(e), "tiempo_ms": 0, "bloqueado": False}
-    finally:
-        if ruta:
-            try:
-                os.unlink(ruta)
-            except Exception:
-                pass
+    # No se ejecutó: o no compila, o tiene operaciones riesgosas → "bloqueado"
+    if not r.get("ejecutado"):
+        razon = r.get("razon", "no ejecutado")
+        riesgos = r.get("riesgos") or []
+        detalle = razon
+        if riesgos:
+            detalle = razon + " — " + ", ".join(f"{t}: {d}" for t, d in riesgos[:5])
+        return {"ok": False, "stdout": "", "stderr": detalle, "tiempo_ms": ms,
+                "bloqueado": True}
+
+    return {
+        "ok": bool(r.get("ok")),
+        "stdout": (r.get("stdout") or "")[:_MAX_OUT],
+        "stderr": (r.get("stderr") or r.get("razon") or "")[:4000],
+        "tiempo_ms": ms,
+        "bloqueado": False,
+    }

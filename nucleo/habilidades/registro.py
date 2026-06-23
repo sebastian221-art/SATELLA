@@ -21,11 +21,15 @@ log = logging.getLogger("satella.habilidades")
 
 _PAQUETE = "nucleo.habilidades"
 # Orden de prioridad: las más específicas / meta primero. El resto va después.
+# 'agente_cc' (Claude Code) va ANTES que 'agente_codigo': cuando decís explícito
+# "agente cc" / "claude code", lo toma el agente nuevo (Claude Code). Como su
+# detecta() solo dispara con esos triggers explícitos, NO le roba las misiones
+# normales al viejo: un "agente, en X: ..." sin "cc" sigue yendo a 'agente_codigo'.
 # 'agente_codigo' va ANTES que 'copia', 'analisis' y 'python': una MISIÓN sobre
 # un proyecto (o un "cloná …") la toma el agente, no el analizador ni la skill
 # de código suelta. Un snippet suelto ("escribime una función") sigue yendo a 'python'.
 _PRIORIDAD = ["gobernador", "navegador", "creador", "mezclador", "planificador",
-              "agente_codigo", "copia", "analisis", "python"]
+              "agente_cc", "agente_codigo", "copia", "analisis", "sistema", "busqueda", "python"]
 
 _SKILLS = []
 

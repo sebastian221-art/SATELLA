@@ -53,16 +53,20 @@ def manejar(texto: str, contexto: dict = None) -> dict:
                                       "No pude armar un plan para eso (¿modelo disponible?).")
 
         log.info(f"[PLAN] {len(pasos)} paso(s) para: {objetivo[:60]}")
-        resultados = ejecutor.ejecutar_plan(pasos, contexto)
+        resultados = ejecutor.ejecutar_plan(pasos, contexto, objetivo=objetivo)
         sintesis = sintetizador.sintetizar(objetivo, resultados)
 
         plan_txt = "\n".join(f"{i}. {p}" for i, p in enumerate(pasos, 1))
-        ejec_txt = "\n".join(f"{i}. [{r['skill']}] {r['cuerpo']}"
-                             for i, r in enumerate(resultados, 1))
+        ejec_txt = "\n".join(
+            f"{i}. [{r['skill']}]{' ↻ re-planifiqué tras fallar' if r.get('replan') else ''} {r['cuerpo']}"
+            for i, r in enumerate(resultados, 1))
+        hubo_replan = any(r.get("replan") for r in resultados)
+        nota_replan = ("\n\n_(un paso falló y replanifiqué para recuperarme)_"
+                       if hubo_replan else "")
         cuerpo = (
             f"**Plan ({len(pasos)} paso/s):**\n{plan_txt}\n\n"
             f"**Ejecución:**\n{ejec_txt}\n\n"
-            f"**Resultado:**\n{sintesis}"
+            f"**Resultado:**\n{sintesis}{nota_replan}"
         )
         return contrato.resultado(NOMBRE, "planificar",
                                   f"plan ejecutado en {len(pasos)} paso(s)", cuerpo)

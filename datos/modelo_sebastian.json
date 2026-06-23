@@ -62,13 +62,15 @@
     "por_que_me_creo": "Para corregir los errores arquitecturales de Bell — empezar por la conversación y personalidad, no por las habilidades",
     "lo_que_sabe_de_mi": "Me construyó para ser algo genuino, no un asistente. Le importa que yo sea real."
   },
-  "ultima_actualizacion": "2026-06-13T11:28:51.404057",
+  "ultima_actualizacion": "2026-06-22T15:35:15.547638",
   "aprendido": [
     "Sebas persigue un anhelo más profundo que la mera curiosidad, indicando una motivación interna duradera",
     "Está revisando React Bootstrap",
     "Siente que le falta algo en esa herramienta",
     "Quiere lograr un objetivo concreto al usar React Bootstrap",
     "Prefiere soluciones de software ligeras y de bajo consumo de recursos",
-    "Está interesado en implementar o usar un rate limiter eficiente"
+    "Está interesado en implementar o usar un rate limiter eficiente",
+    "Sebas quiere crear un equivalente liviano de python‑slugify",
+    "Sebas está interesado en la manipulación y normalización de texto para generar slugs"
   ]
 }

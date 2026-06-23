@@ -9,7 +9,7 @@ Respeta alcance ("solo diseño"), modo objetivo-propio (seguridad avanzada) y
 guarda histórico de cada análisis.
 """
 from nucleo.habilidades import contrato
-from . import detector, extractor_web, explicador, almacen, paquetes, repos, codigo_multi, herramientas
+from . import detector, extractor_web, explicador, almacen, paquetes, repos, codigo_multi, herramientas, seguridad
 
 NOMBRE = "analisis"
 DESCRIPCION = ("Análisis máximo y universal: webs/sistemas (stack, red, sources, DOM, seguridad con "
@@ -26,10 +26,21 @@ EJEMPLOS = [
 
 
 def detecta(texto, codigo_adjunto=""):
+    if detector.quiere_seguridad(texto) and (
+        detector.hay_codigo_pegado(texto) or detector.ruta_local(texto)
+        or detector.repo_github(texto) or detector.hay_url(texto)
+    ):
+        return True
     return detector.es_peticion(texto, codigo_adjunto)
 
 
 def manejar(texto, contexto=None):
+    # Auditoría de seguridad (modo hacker, solo análisis) sobre código/archivo/repo.
+    if detector.quiere_seguridad(texto):
+        res = _manejar_seguridad(texto)
+        if res:
+            return res
+
     t = detector.tipo(texto)
     objetivo = detector.objetivo(texto)
     incluir, excluir = detector.alcance(texto)
@@ -81,7 +92,43 @@ def manejar(texto, contexto=None):
     return contrato.resultado(NOMBRE, t, _resumen_web(hechos), "\n\n".join(partes), ok=True)
 
 
-def _manejar_repo(texto, objetivo):
+def _manejar_seguridad(texto):
+    """
+    Auditoría de seguridad. Devuelve un resultado si aplica a código/archivo/repo
+    local, o None para que siga el flujo normal (ej. URL → análisis web con su
+    propia sección de seguridad).
+    """
+    import os
+    ruta = detector.ruta_local(texto)
+
+    # Código pegado en el mensaje
+    if detector.hay_codigo_pegado(texto) and not ruta:
+        codigo = detector.extraer_codigo_pegado(texto)
+        leng = detector.lenguaje_codigo(codigo)
+        f = seguridad.auditar(codigo=codigo, lenguaje=leng, contexto="código pegado para auditar")
+        cuerpo = seguridad.como_texto(f)
+        altas = sum(1 for h in f.get("hallazgos", []) if h.get("severidad") == "alta")
+        resumen = f"Auditoría de seguridad: {len(f.get('hallazgos', []))} hallazgos ({altas} altos)."
+        return contrato.resultado(NOMBRE, "seguridad", resumen, cuerpo, ok=True)
+
+    # Archivo o carpeta local
+    if ruta and os.path.exists(ruta):
+        if os.path.isfile(ruta):
+            f = seguridad.auditar(ruta=ruta, lenguaje=detector.lenguaje_codigo(ruta),
+                                  contexto=f"archivo {os.path.basename(ruta)}")
+        else:
+            f = seguridad.auditar(ruta=ruta, lenguaje="proyecto", contexto=f"proyecto en {ruta}")
+        cuerpo = seguridad.como_texto(f)
+        altas = sum(1 for h in f.get("hallazgos", []) if h.get("severidad") == "alta")
+        resumen = f"Auditoría de seguridad: {len(f.get('hallazgos', []))} hallazgos ({altas} altos)."
+        return contrato.resultado(NOMBRE, "seguridad", resumen, cuerpo, ok=True)
+
+    # URL u otra cosa → que lo tome el flujo web normal (ya tiene sección seguridad)
+    return None
+
+
+def detecta_legacy(texto, codigo_adjunto=""):
+    return detector.es_peticion(texto, codigo_adjunto)
     gh = detector.repo_github(texto)
     ruta = detector.ruta_local(texto)
     if gh and any(k in texto.lower() for k in detector._REPO_KW):

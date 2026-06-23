@@ -72,15 +72,65 @@ def preparar_para_voz(texto: str) -> str:
     return t
 
 
-async def _sintetizar_async(texto: str, voice: str, output: str):
+async def _sintetizar_async(texto: str, voice: str, output: str,
+                            rate: str = "+0%", pitch: str = "+0Hz", volume: str = "+0%"):
     import edge_tts
-    communicate = edge_tts.Communicate(texto, voice=voice)
+    communicate = edge_tts.Communicate(texto, voice=voice, rate=rate, pitch=pitch, volume=volume)
     await communicate.save(output)
 
 
-def sintetizar_voz(texto: str) -> str | None:
+# ─────────────────────────────────────────────────────────────────────────────
+# PROSODIA EMOCIONAL — la voz se matiza según QUÉ voz habla y CON QUÉ emoción.
+# edge-tts gratis no actúa emociones (no tiene 'express-as'), pero sí modula
+# velocidad/tono/volumen. Combinamos un color base por personaje + un empuje por
+# emoción para sugerir: calma, euforia, timidez, aliento, enojo, desilusión, etc.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Color base por voz: (velocidad %, tono Hz, volumen %)
+_BASE_VOZ = {
+    "echidna": (-8, -2, 0),    # calmada, medida, grave
+    "rem":     (2, 6, 0),      # cálida, alentadora, brillante
+    "ram":     (6, -6, 0),     # firme, cortante, grave
+    "emilia":  (-6, 4, -3),    # gentil, suave
+}
+
+# Empuje por emoción (tono detectado): se SUMA sobre el color base.
+_EMOCION = {
+    "contento":   (8, 6, 2),     # feliz
+    "emocionado": (12, 9, 3),    # eufórica
+    "afectuoso":  (-2, 4, 0),    # cálida
+    "curioso":    (3, 2, 0),     # despierta
+    "normal":     (0, 0, 0),
+    "serio":      (-3, -3, 0),
+    "dudando":    (-5, 1, -3),   # tímida/tentativa
+    "cansado":    (-9, -4, -4),  # apagada
+    "frustrado":  (4, -3, 2),    # tensa
+    "irritado":   (6, -4, 3),    # molesta
+    "triste":     (-8, -5, -5),  # desilusionada
+}
+
+
+def _clamp(v, lo, hi):
+    return max(lo, min(hi, v))
+
+
+def _perfil_prosodia(voz: str = None, emocion: str = None):
+    """Devuelve (rate, pitch, volume) como strings para edge-tts."""
+    br, bp, bv = _BASE_VOZ.get((voz or "").lower(), (0, 0, 0))
+    # La emoción puede venir compuesta ('dudando|frustrado') → tomo la primera.
+    em = (emocion or "normal").split("|")[0].strip().lower()
+    er, ep, ev = _EMOCION.get(em, (0, 0, 0))
+    r = _clamp(br + er, -40, 40)
+    p = _clamp(bp + ep, -20, 20)
+    v = _clamp(bv + ev, -20, 20)
+    return (f"{'+' if r >= 0 else ''}{r}%",
+            f"{'+' if p >= 0 else ''}{p}Hz",
+            f"{'+' if v >= 0 else ''}{v}%")
+
+
+def sintetizar_voz(texto: str, voz: str = None, emocion: str = None) -> str | None:
     """
-    Genera audio con edge-tts.
+    Genera audio con edge-tts, matizado según la voz y la emoción del momento.
     Retorna base64 del MP3 o None si falla.
     """
     try:
@@ -88,7 +138,8 @@ def sintetizar_voz(texto: str) -> str | None:
         if not texto_limpio:
             return None
 
-        asyncio.run(_sintetizar_async(texto_limpio, VOZ_EDGE, AUDIO_TMP))
+        rate, pitch, volume = _perfil_prosodia(voz, emocion)
+        asyncio.run(_sintetizar_async(texto_limpio, VOZ_EDGE, AUDIO_TMP, rate, pitch, volume))
 
         with open(AUDIO_TMP, "rb") as f:
             audio_b64 = base64.b64encode(f.read()).decode()

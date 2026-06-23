@@ -1,11 +1,18 @@
 """
-nucleo/habilidades/python/skill.py — Orquestador de la habilidad Python.
+nucleo/habilidades/python/skill.py — Orquestador de la habilidad de código.
+
+GENERACIÓN → Claude Code (calidad frontera, aplica tu CLAUDE.md), multi-lenguaje.
+EJECUTAR / DEBUG / ANALIZAR → herramientas locales de Satella (ejecutor con
+guardia, analizador con Big-O). Eso es lo que ningún LLM hace solo: correr el
+código de verdad y medirlo exacto.
+
+Rol: snippets sueltos y código pegado, acá en el chat, con ejecución en vivo.
+Para trabajo sobre PROYECTOS está agente_cc (Claude Code editando archivos).
 
 detecta(texto, codigo_adjunto) -> bool
 manejar(texto, contexto)       -> dict {ok, skill, modo, resumen, cuerpo}
 """
-from . import (detector, analizador, ejecutor, generador, verificador,
-               explicador, aprendiz)
+from . import (detector, analizador, ejecutor, generador, explicador, aprendiz)
 
 NOMBRE = "python"
 
@@ -18,48 +25,74 @@ def manejar(texto: str, contexto: dict = None) -> dict:
     codigo = detector.extraer_codigo(texto)
     modo = detector.detectar_modo(texto, codigo)
     if modo == "generacion":
-        res = _generar(texto)
-    elif modo == "ejecutar":
-        res = _ejecutar(codigo)
-    elif modo == "debug":
-        res = _debug(codigo)
-    else:
-        res = _analizar(codigo)
-    if res.get("ok"):
-        aprendiz.registrar(res.get("modo", modo), texto, res)
-    return res
+        return _generar(texto)
+    if modo == "ejecutar":
+        return _ejecutar(codigo)
+    if modo == "debug":
+        return _debug(codigo)
+    return _analizar(codigo)
 
 
-# ── Generación: pipeline (plan→código→tests→refinar) + explicación conversacional ─
+# ── Generación: Claude Code + verificación local + análisis ────────────────────
 def _generar(requerimiento: str) -> dict:
-    gen = generador.generar(requerimiento)
+    lenguaje = detector.detectar_lenguaje(requerimiento)
+    gen = generador.generar(requerimiento, lenguaje)
     if not gen.get("ok"):
-        return {"ok": False}
+        return {
+            "ok": True, "skill": NOMBRE, "modo": "generacion",
+            "resumen": "No pude generar el código",
+            "cuerpo": ("No tengo el cerebro generador disponible (Claude Code). "
+                       "Revisá que `claude` esté instalado y logueado."),
+        }
 
     codigo = gen["codigo"]
-    a = analizador.analizar(codigo)
-    explic = explicador.explicar_creacion(requerimiento, gen.get("plan", ""),
-                                          codigo, gen.get("tests_pasaron"))
+    es_python = (lenguaje == "python")
+    desde_cache = gen.get("desde_cache")
+
+    # Análisis exacto (Big-O/métricas) solo aplica a Python (es AST de Python).
+    a = analizador.analizar(codigo) if es_python else {"resumen": "", "sintaxis_ok": True, "problemas": []}
+
+    # Explicación conversacional (Groq, rápida) — qué hizo y por qué.
+    explic = explicador.explicar_creacion(requerimiento, "", codigo, gen.get("tests_pasaron"))
 
     cuerpo = (explic + "\n\n") if explic else ""
-    cuerpo += f"```python\n{codigo}\n```"
+    cuerpo += f"```{lenguaje}\n{codigo}\n```"
 
     # Estado honesto de verificación.
     tp = gen.get("tests_pasaron")
-    if tp is True:
-        verif = f"Lo probé con tests (incluidos casos borde) y pasaron"
-        if gen.get("ciclos"):
-            verif += f" (lo corregí en {gen['ciclos']} ciclo/s)"
-        verif += "."
+    if desde_cache:
+        verif = "Recuperé esta solución del cuaderno (ya la habíamos resuelto)."
+    elif not es_python:
+        verif = f"Generado en {lenguaje} por Claude Code. (Ejecución automática solo para Python por ahora.)"
+    elif tp is True:
+        verif = "Lo generó Claude Code y lo corrí en tu máquina: anda."
     elif tp is False:
-        verif = "Atención: algunos tests no pasaron — revisá los casos borde."
+        verif = "Lo generó Claude Code, pero al correrlo acá dio error — revisalo."
     else:
-        verif = "Pasó sintaxis y linting (no llegué a probarlo con tests)."
-    cuerpo += f"\n\n— {verif} {a.get('resumen','')}"
+        verif = "Generado por Claude Code (no llegué a ejecutarlo)."
 
-    resumen = ("Generé la solución y la probé con tests; pasaron." if tp is True
-               else "Generé la solución (revisá los tests)." if tp is False
-               else "Generé la solución, verificada por sintaxis y linting.")
+    extra = (" " + a.get("resumen", "")) if (es_python and a.get("resumen")) else ""
+    cuerpo += f"\n\n— {verif}{extra}"
+
+    # Verificación semántica (predicción vs realidad), si se hizo.
+    sem_txt = gen.get("semantica_txt")
+    if sem_txt:
+        cuerpo += "\n\n" + sem_txt
+
+    if es_python and a.get("problemas"):
+        cuerpo += "\n\nPara revisar:\n- " + "\n- ".join(a["problemas"][:8])
+
+    meta = []
+    if gen.get("turnos") is not None:
+        meta.append(f"{gen['turnos']} turnos")
+    if gen.get("costo") is not None:
+        meta.append(f"${gen['costo']:.4f}")
+    if meta and not desde_cache:
+        cuerpo += f"\n\n— Claude Code · {' · '.join(meta)}"
+
+    resumen = ("Recuperé la solución del cuaderno." if desde_cache
+               else f"Generé la solución en {lenguaje} con Claude Code"
+                    + (" y la probé, anda." if tp is True else "."))
     return {"ok": True, "skill": NOMBRE, "modo": "generacion", "resumen": resumen, "cuerpo": cuerpo}
 
 
@@ -102,8 +135,7 @@ def _debug(codigo: str) -> dict:
     if not cuerpo:
         cuerpo = "No encontré problemas de sintaxis, lint, ejecución ni lógica evidentes."
 
-    resumen = "Diagnostiqué el código."
-    return {"ok": True, "skill": NOMBRE, "modo": "debug", "resumen": resumen, "cuerpo": cuerpo}
+    return {"ok": True, "skill": NOMBRE, "modo": "debug", "resumen": "Diagnostiqué el código.", "cuerpo": cuerpo}
 
 
 # ── Ejecutar ───────────────────────────────────────────────────────────────────

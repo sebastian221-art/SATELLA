@@ -62,7 +62,7 @@ def _componer(texto: str, contexto: dict = None) -> dict:
                                   "No pude armar la combinación (¿modelo disponible?).")
 
     log.info(f"[MEZCLA] {len(pasos)} paso(s) para: {objetivo[:60]}")
-    resultados = _plan_ejec.ejecutar_plan(pasos, contexto)
+    resultados = _plan_ejec.ejecutar_plan(pasos, contexto, objetivo=objetivo)
     sintesis = _plan_sint.sintetizar(objetivo, resultados)
 
     _ultima["objetivo"] = objetivo

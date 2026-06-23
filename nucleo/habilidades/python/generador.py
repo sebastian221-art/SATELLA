@@ -1,24 +1,41 @@
 """
-nucleo/habilidades/python/generador.py — PIPELINE DE CREACIÓN (la "lógica de Claude")
-No genera de un saque. Sigue el proceso de un ingeniero senior:
-  1. PLAN     — entiende la spec: enfoque, casos borde, complejidad esperada.
-  2. CÓDIGO   — escribe la solución guiada por el plan.
-  3. TESTS    — escribe asserts (incluidos casos borde) y LOS CORRE.
-  4. REFINA   — si un test falla, corrige y reintenta (hasta 2 ciclos).
-Exprime mucho más del mismo modelo que un one-shot. Todo degrada con elegancia.
+nucleo/habilidades/python/generador.py — GENERACIÓN con Claude Code.
+El cerebro generador ahora es Claude Code (calidad frontera, con tu CLAUDE.md
+aplicado). No envolvemos un pipeline propio: Claude ya planifica/prueba/refina
+por dentro. Lo que SÍ hace Satella (y ningún LLM solo): correr el código en tu
+máquina para verificarlo, y analizarlo (Big-O/métricas). Multi-lenguaje.
+
+Flujo:
+  1. ¿Ya lo resolví casi igual antes? → recupero del cuaderno (rápido, sin gastar).
+  2. Si no: se lo pido a Claude Code.
+  3. Si es Python: lo EJECUTO acá para verificar que corre.
+  4. Guardo la solución completa en el cuaderno.
+Degrada con elegancia: si Claude Code no está, devuelve ok=False y la skill avisa.
 """
 import ast
-import re
+import time
 
-from . import _llm, ejecutor
+from nucleo import prediccion
+from . import _claude_code, aprendiz, ejecutor
+
+# Techo de tiempo (segundos) para TODA la generación. La entrega nunca se cuelga:
+# la verificación semántica y la autocorrección son extras best-effort dentro de esto.
+_PRESUPUESTO = 150
 
 
-def _extraer(texto: str) -> str:
-    m = re.search(r"```(?:python|py)?\s*(.*?)```", texto, re.DOTALL)
-    return (m.group(1).strip() if m else texto.strip())
+def _prompt_correccion(requerimiento, codigo, fallidos):
+    casos = "\n".join(f"- {c['llamada']}: esperado {c['esperado']}, pero da {c['real']}"
+                      for c in fallidos[:8])
+    return (
+        f"Este código (que debía: {requerimiento}) corre sin crashear pero da resultados "
+        f"INCORRECTOS en estos casos:\n{casos}\n\n"
+        f"Código actual:\n```python\n{codigo}\n```\n\n"
+        "Corregí el bug para que esos casos den el resultado esperado, sin romper el resto. "
+        "Devolvé el código completo corregido."
+    )
 
 
-def _valido(codigo: str) -> bool:
+def _valido_python(codigo: str) -> bool:
     try:
         ast.parse(codigo)
         return True
@@ -26,92 +43,78 @@ def _valido(codigo: str) -> bool:
         return False
 
 
-def _sin_main(codigo: str) -> str:
-    idx = codigo.find("if __name__")
-    return codigo[:idx].strip() if idx != -1 else codigo
+def _verificar_python(codigo: str):
+    """Corre el código Python en tu máquina. Devuelve (verdicto, salida).
+    True = corrió bien | False = error | None = no se pudo evaluar."""
+    if not _valido_python(codigo):
+        return False, "El código no es Python válido (error de sintaxis)."
+    r = ejecutor.ejecutar(codigo, timeout=8)
+    if r.get("bloqueado"):
+        return None, "No lo ejecuté (la guardia de seguridad lo frenó)."
+    if r.get("ok"):
+        return True, r.get("stdout", "")
+    return False, (r.get("stderr") or "error desconocido")[:600]
 
 
-def generar(requerimiento: str) -> dict:
-    if not _llm.disponible():
+def generar(requerimiento: str, lenguaje: str = "python") -> dict:
+    t0 = time.time()  # presupuesto de tiempo: la entrega NUNCA se cuelga esperando
+
+    # 1) ¿Está en el cuaderno (pedido casi idéntico, ya resuelto)?
+    cache = aprendiz.buscar_similar(requerimiento, lenguaje)
+    if cache:
+        return {"ok": True, "codigo": cache["codigo"], "lenguaje": lenguaje,
+                "plan": "", "tests": "", "tests_pasaron": cache.get("verdicto"),
+                "salida_tests": "", "ciclos": 0, "desde_cache": True}
+
+    # 2) Se lo pido a Claude Code.
+    if not _claude_code.disponible():
         return {"ok": False}
+    gen = _claude_code.generar_codigo(requerimiento, lenguaje)
+    if not gen.get("ok"):
+        return {"ok": False, "razon": gen.get("razon", "")}
 
-    plan = _plan(requerimiento)
-    codigo = _codigo(requerimiento, plan)
-    if not _valido(codigo):
-        codigo = _codigo(requerimiento, plan)        # un reintento
-    if not codigo or not _valido(codigo):
-        return {"ok": False}
+    codigo = gen["codigo"]
 
-    asserts = _tests(requerimiento, codigo)
-    tests_pasaron, salida = (_correr_tests(codigo, asserts) if asserts else (None, ""))
+    # 3) Verificación independiente: si es Python, lo corro acá.
+    verdicto, salida = (None, "")
+    if lenguaje == "python":
+        verdicto, salida = _verificar_python(codigo)
 
-    ciclos = 0
-    while tests_pasaron is False and ciclos < 3:
-        nuevo = _refinar(requerimiento, codigo, salida)
-        if not nuevo or not _valido(nuevo) or nuevo == codigo:
-            break
-        codigo = nuevo
-        tests_pasaron, salida = _correr_tests(codigo, asserts)
-        ciclos += 1
+    # 3b) Verificación SEMÁNTICA (predigo casos y comparo) — BEST-EFFORT con techo
+    #     de tiempo. Si ya gastamos buena parte del presupuesto generando+corriendo,
+    #     entrego el código sin colgarme; la semántica es un extra, no un bloqueo.
+    semantica = None
+    nota_tiempo = ""
+    hay_tiempo_predecir = (time.time() - t0) < _PRESUPUESTO * 0.55
+    if lenguaje == "python" and verdicto is True and hay_tiempo_predecir:
+        semantica = prediccion.verificar(codigo, requerimiento)
+        # Corregir SOLO si detectó un bug y todavía queda presupuesto.
+        if (semantica.get("hizo") and semantica.get("ok") and not semantica.get("todos")
+                and (time.time() - t0) < _PRESUPUESTO * 0.8):
+            fallidos = [c for c in semantica["casos"] if not c["coincide"]]
+            correg = _claude_code.generar_codigo(
+                _prompt_correccion(requerimiento, codigo, fallidos), lenguaje)
+            if correg.get("ok") and correg.get("codigo", "").strip() and correg["codigo"] != codigo:
+                v2, s2 = _verificar_python(correg["codigo"])
+                if v2 is True and (time.time() - t0) < _PRESUPUESTO:
+                    sem2 = prediccion.verificar(correg["codigo"], requerimiento)
+                    if sem2.get("hizo") and sem2.get("coinciden", 0) > semantica.get("coinciden", 0):
+                        codigo, verdicto, salida, semantica = correg["codigo"], v2, s2, sem2
+    elif lenguaje == "python" and verdicto is True and not hay_tiempo_predecir:
+        nota_tiempo = "no alcancé a verificar la semántica por tiempo (el código corre igual)"
 
-    return {"ok": True, "codigo": codigo, "plan": plan, "tests": asserts,
-            "tests_pasaron": tests_pasaron, "salida_tests": salida, "ciclos": ciclos}
+    # 4) Guardo la solución completa en el cuaderno.
+    aprendiz.registrar("generacion", requerimiento,
+                       {"resumen": "solución generada"},
+                       codigo=codigo, lenguaje=lenguaje, verdicto=verdicto)
 
+    semantica_txt = prediccion.como_texto(semantica) if semantica else ""
+    if nota_tiempo:
+        semantica_txt = f"({nota_tiempo})"
 
-# ── Pasos del pipeline ─────────────────────────────────────────────────────────
-def _plan(requerimiento: str) -> str:
-    prompt = (
-        f'Tarea: "{requerimiento}"\n\n'
-        "Antes de escribir código, hacé un plan BREVE (no escribas código todavía):\n"
-        "- Entradas y salidas.\n- Casos borde a contemplar (vacío, negativos, tipos inválidos, etc.).\n"
-        "- Enfoque/algoritmo y complejidad esperada.\n"
-        "Respondé en 4-6 líneas, en español. Nada de código."
-    )
-    return _llm.chat(prompt, max_tokens=400, temperature=0.3)
-
-
-def _codigo(requerimiento: str, plan: str) -> str:
-    prompt = (
-        f'Tarea: "{requerimiento}"\n\nPlan acordado:\n{plan}\n\n'
-        "Escribí la solución en Python siguiendo el plan.\n"
-        "- Comentarios y docstring en ESPAÑOL.\n"
-        "- Manejá los casos borde del plan.\n"
-        "- Código completo y correcto: elegí la estructura de datos adecuada y "
-        "EVITÁ antipatrones (concatenar strings en un bucle → usá ''.join; "
-        "defaults mutables; recursión sin caso base; búsquedas O(n) dentro de bucles).\n"
-        '- Incluí un bloque if __name__ == "__main__": con un ejemplo real.\n'
-        "Escribí TODO el código, sin recortar ni omitir partes. "
-        "Respondé SOLO el código en un bloque ```python ... ```."
-    )
-    return _extraer(_llm.chat(prompt, max_tokens=3500, temperature=0.2))
-
-
-def _tests(requerimiento: str, codigo: str) -> str:
-    prompt = (
-        f'Para esta tarea: "{requerimiento}"\n\nEste es el código:\n```python\n{codigo}\n```\n\n'
-        "Escribí entre 3 y 6 asserts que comprueben que la función hace lo correcto, "
-        "INCLUYENDO casos borde (vacío, negativos, tipos límite). Usá el MISMO nombre de función.\n"
-        "Solo las líneas `assert ...` (o try/except para los que deban lanzar error). "
-        "Respondé SOLO el bloque ```python ... ``` con los asserts, sin redefinir la función."
-    )
-    t = _extraer(_llm.chat(prompt, max_tokens=900, temperature=0.2))
-    # Seguridad: solo conservar líneas de test, no una redefinición de la función.
-    lineas = [ln for ln in t.splitlines() if not ln.strip().startswith("def ")]
-    return "\n".join(lineas).strip()
-
-
-def _correr_tests(codigo: str, asserts: str):
-    script = _sin_main(codigo) + "\n\n# --- tests ---\n" + asserts + '\nprint("TESTS_OK")\n'
-    r = ejecutor.ejecutar(script, timeout=8)
-    if r["ok"] and "TESTS_OK" in r.get("stdout", ""):
-        return True, ""
-    return False, (r.get("stderr") or r.get("stdout") or "fallo desconocido")[:600]
-
-
-def _refinar(requerimiento: str, codigo: str, salida: str) -> str:
-    prompt = (
-        f'Tarea: "{requerimiento}"\n\nEste código falló sus tests:\n```python\n{codigo}\n```\n\n'
-        f"Salida del fallo:\n{salida}\n\n"
-        "Corregí el código para que pase. Respondé SOLO el código corregido COMPLETO en ```python ... ```."
-    )
-    return _extraer(_llm.chat(prompt, max_tokens=3500, temperature=0.2))
+    return {"ok": True, "codigo": codigo, "lenguaje": lenguaje, "plan": "",
+            "tests": "", "tests_pasaron": verdicto, "salida_tests": salida,
+            "ciclos": 0, "desde_cache": False,
+            "semantica_txt": semantica_txt,
+            "semantica_ok": bool(semantica and semantica.get("todos")),
+            "costo": gen.get("costo"), "turnos": gen.get("turnos")}

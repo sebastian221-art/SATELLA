@@ -1,15 +1,13 @@
 """
 nucleo/habilidades/copia/verificador.py
 Verifica el código generado: chequeo de sintaxis (AST, siempre) y un smoke test
-acotado (lo ejecuta en subprocess con timeout, en archivo temporal). Reporta si
-corre y qué error tira, sin romper el flujo.
+ejecutado EN EL SANDBOX (aislado, entorno sin secretos, timeout). Si el código
+hace cosas riesgosas (red, escribir/borrar archivos, subprocesos), el sandbox NO
+lo corre solo y lo reporta — más seguro que ejecutarlo a ciegas.
 """
 import ast
-import os
-import sys
-import tempfile
-import subprocess
 
+from nucleo import sandbox
 
 _LARGA_DURACION = ("serve_forever", "while True", "while 1", "app.run(", "mainloop(",
                    "run_forever", "uvicorn.run", "socketio.run", ".serve(", "loop.run")
@@ -25,39 +23,31 @@ def verificar(codigo, ejecutar=True, timeout=8):
     except SyntaxError as e:
         return {"sintaxis_ok": False, "ejecuta": False, "error": f"SyntaxError: {e}"}
 
-    res = {"sintaxis_ok": True, "ejecuta": None, "error": None, "salida": "", "largo": False}
+    res = {"sintaxis_ok": True, "ejecuta": None, "error": None, "salida": "",
+           "largo": False, "no_seguro": False, "riesgos": []}
     if not ejecutar:
         return res
 
-    # Código de servicio / larga duración: NO ejecutar como smoke test (correría para siempre)
+    # Código de servicio / larga duración: NO ejecutar (correría para siempre)
     if any(p in codigo for p in _LARGA_DURACION):
         res["largo"] = True
         return res
 
-    # 2) Smoke test acotado
-    ruta = None
-    try:
-        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
-            f.write(codigo)
-            ruta = f.name
-        p = subprocess.run([sys.executable, ruta], capture_output=True, text=True,
-                           timeout=timeout, encoding="utf-8", errors="replace")
-        res["ejecuta"] = (p.returncode == 0)
-        res["salida"] = (p.stdout or "")[:500]
-        if p.returncode != 0:
-            res["error"] = (p.stderr or "").strip().splitlines()[-1] if p.stderr else "Salió con código != 0"
-    except subprocess.TimeoutExpired:
-        res["ejecuta"] = False
-        res["error"] = f"Timeout (> {timeout}s)"
-    except Exception as e:
-        res["ejecuta"] = False
-        res["error"] = str(e)[:160]
-    finally:
-        if ruta and os.path.exists(ruta):
-            try:
-                os.unlink(ruta)
-            except Exception:
-                pass
+    # 2) Smoke test EN EL SANDBOX
+    r = sandbox.ejecutar_seguro(codigo, timeout=timeout)
+    res["riesgos"] = r.get("riesgos", [])
+    if not r.get("ejecutado"):
+        # No se corrió: o no compila (ya filtrado) o tiene operaciones riesgosas.
+        res["ejecuta"] = None
+        res["no_seguro"] = True
+        res["error"] = r.get("razon", "no ejecutado")
+        return res
+
+    res["ejecuta"] = bool(r.get("ok"))
+    res["salida"] = (r.get("stdout") or "")[:500]
+    if not r.get("ok"):
+        err = (r.get("stderr") or r.get("razon") or "").strip()
+        res["error"] = err.splitlines()[-1] if err.splitlines() else "Salió con código != 0"
     return res
 
 
@@ -66,8 +56,12 @@ def como_texto(v):
         return f"✗ Sintaxis inválida: {v.get('error')}"
     if v.get("largo"):
         return "✓ Sintaxis OK · código de servicio/larga duración (no se ejecuta como smoke test)"
+    if v.get("no_seguro"):
+        riesgos = ", ".join(f"{t}: {d}" for t, d in (v.get("riesgos") or [])[:5])
+        return ("✓ Sintaxis OK · ⚠ no lo corrí en el sandbox por seguridad "
+                f"({riesgos or v.get('error')}). Revisalo antes de usarlo.")
     if v.get("ejecuta") is None:
         return "✓ Sintaxis OK (no se ejecutó)"
     if v.get("ejecuta"):
-        return "✓ Sintaxis OK · ✓ ejecuta sin errores"
-    return f"✓ Sintaxis OK · ⚠ falla al ejecutar: {v.get('error')}"
+        return "✓ Sintaxis OK · ✓ corrió aislado en el sandbox sin errores"
+    return f"✓ Sintaxis OK · ⚠ falla al ejecutar en el sandbox: {v.get('error')}"

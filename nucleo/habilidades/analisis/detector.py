@@ -227,3 +227,58 @@ def ruta_local(texto):
 def comando_cli(texto):
     m = re.search(r"(?:herramienta|comando|ejecutable|binario|cli)\s+([a-zA-Z][\w.\-]*)", texto or "", re.I)
     return m.group(1) if m else None
+
+# ── Auditoría de seguridad (modo hacker / análisis de vulnerabilidades) ──────
+_SEG_MARKERS = (
+    "vulnerab", "modo hacker", "pentest", "hackea", "hackear", "fragilidad",
+    "frágil", "fragil", "fallas de seguridad", "huecos de seguridad", "agujero",
+    "auditá la seguridad", "audita la seguridad", "auditar la seguridad",
+    "auditoría de seguridad", "auditoria de seguridad", "qué tan seguro",
+    "que tan seguro", "es seguro", "inseguro", "exploit", "vector de ataque",
+    "superficie de ataque", "blindar", "endurec", "hardening", "análisis de seguridad",
+    "analisis de seguridad", "buscá fallas", "busca fallas", "puntos de entrada",
+)
+
+
+def quiere_seguridad(texto):
+    """True si el pedido es una auditoría de seguridad / análisis modo hacker."""
+    return any(m in _t(texto) for m in _SEG_MARKERS)
+
+
+_SIGNOS_FUERTES = ("```", "def ", "class ", "function ", "<?php", "import ")
+_SIGNOS_DEBILES = ("const ", "let ", "var ", "=>", "select ", "public ",
+                   "private ", "return ", "});", "console.log", "self.")
+
+
+def hay_codigo_pegado(texto):
+    """True si el mensaje trae código pegado: una señal fuerte, o dos débiles."""
+    t = (texto or "").lower()
+    if any(s in t for s in _SIGNOS_FUERTES):
+        return True
+    return sum(s in t for s in _SIGNOS_DEBILES) >= 2
+
+
+def extraer_codigo_pegado(texto):
+    """Saca el código pegado: bloque ```...```, lo de después de ':', o el texto."""
+    m = re.search(r"```(?:[\w+]*)\n?(.*?)```", texto or "", re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    if ":" in (texto or "") and hay_codigo_pegado(texto.split(":", 1)[1]):
+        return texto.split(":", 1)[1].strip()
+    return (texto or "").strip()
+
+
+def lenguaje_codigo(texto):
+    """Adivina el lenguaje del código pegado para el reporte."""
+    t = (texto or "").lower()
+    if any(s in t for s in ("def ", "import ", "self.", "__init__", "print(")):
+        return "python"
+    if any(s in t for s in ("function ", "const ", "=>", "let ", "var ", "console.log")):
+        return "javascript"
+    if "<?php" in t:
+        return "php"
+    if any(s in t for s in ("<html", "<div", "<script")):
+        return "html"
+    if "select " in t or "insert into" in t:
+        return "sql"
+    return "código"

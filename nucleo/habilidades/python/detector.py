@@ -129,3 +129,21 @@ def detectar_modo(texto: str, codigo_adjunto: str = "") -> str:
     if tiene and not any(k in t for k in _KW_GENERAR):
         return "analisis"
     return "generacion"
+
+# ── Detección de lenguaje (multi-lenguaje) ───────────────────────────────────
+_LENG = [
+    ("typescript", ("typescript", " tsx", ".tsx", " ts ", "react con tipos")),
+    ("javascript", ("javascript", " js ", ".js", "node", "nodejs", "react", "vue")),
+    ("html",       ("html", "página web", "pagina web", "landing", "css")),
+    ("json",       ("json", "un json")),
+    ("python",     ("python", "py ", ".py")),
+]
+
+
+def detectar_lenguaje(texto: str) -> str:
+    """Adivina el lenguaje pedido. Default: python."""
+    t = " " + (texto or "").lower() + " "
+    for leng, marcas in _LENG:
+        if any(m in t for m in marcas):
+            return leng
+    return "python"

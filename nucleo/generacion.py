@@ -125,35 +125,93 @@ _FEWSHOT = [
 ]
 
 
+# Frases de conformismo/excusa → activan a Ram (lo nombra de frente).
+_EXCUSA = ("igual funciona", "igual sirve", "lo dejo así", "lo dejo asi", "así nomás",
+           "asi nomas", "después lo hago", "despues lo hago", "ya después", "ya despues",
+           "no importa", "da igual", "para qué", "para que molestar", "ya está bien así",
+           "ya esta bien asi", "no vale la pena")
+
+# Confusión sobre qué quiere / hacia dónde → activan a Emilia (clarifica).
+_CONFUSION = ("no sé qué quiero", "no se que quiero", "no sé bien qué", "no se bien que",
+              "qué quiero hacer", "que quiero hacer", "no tengo claro qué", "no tengo claro que",
+              "no sé para dónde", "no se para donde", "no sé hacia dónde", "no se hacia donde",
+              "qué hago con todo esto", "que hago con todo esto", "no sé qué hacer con")
+
+
+def _partes(s: str) -> set:
+    """Parte 'apoyo_directo|validacion' en {'apoyo_directo','validacion'}."""
+    return {p.strip() for p in (s or "").lower().split("|") if p.strip()}
+
+
+def _elegir_voz(comprension: dict, res: dict = None, mensaje: str = "") -> str:
+    """
+    Elige la voz según la SITUACIÓN real, no por rotación. Esto es lo que vuelve la
+    personalidad coherente: cada voz aparece cuando el momento la pide.
+      - Echidna: por defecto (la presencia) y SIEMPRE en éxitos técnicos.
+      - Rem: duda genuina o agotamiento que pide apoyo (acá sí cabe 'no te rindas').
+      - Ram: cuando se excusa o se conforma.
+      - Emilia: cuando está confundido sobre qué quiere.
+    tono y necesita pueden venir compuestos ('dudando|frustrado'): se parsean ambos.
+    """
+    c = comprension or {}
+    tonos = _partes(c.get("tono"))
+    necesitas = _partes(c.get("necesita"))
+    msg = (mensaje or "").lower()
+
+    # Resultado de una habilidad: un ÉXITO nunca lleva consuelo de "no te rindas".
+    if res is not None:
+        resumen = (res.get("resumen") or "").lower()
+        fracaso = (not res.get("ok", True)) or any(
+            w in resumen for w in ("no pude", "falló", "fallo", "error",
+                                   "no se pudo", "no logro", "no encontr"))
+        if not fracaso:
+            return "echidna"          # logro/resultado → observación, no abrazo
+        # Falló: si está bajón, Rem acompaña; si no, Echidna diagnostica.
+        return "rem" if (tonos & {"frustrado", "cansado", "dudando"}) else "echidna"
+
+    # Conversación: la voz sigue al momento emocional real.
+    if any(e in msg for e in _EXCUSA):
+        return "ram"
+    if any(k in msg for k in _CONFUSION):
+        return "emilia"
+    if (tonos & {"dudando", "cansado", "frustrado"}) and \
+            (necesitas & {"apoyo_directo", "validacion", "que_la_escuchen"}):
+        return "rem"
+    if "solo_hablar" in necesitas and (tonos & {"dudando", "serio", "normal"}):
+        return "emilia"
+    return "echidna"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # FUNCIÓN PRINCIPAL
 # ─────────────────────────────────────────────────────────────────────────────
 
 def generar(mensaje: str, comprension: dict, modelo, episodios, rag, historial) -> str:
     """Genera la respuesta de Satella con Groq, rotando las 4 voces."""
-    global ultima_voz, _idx_voz
+    global ultima_voz
     if not _groq_ok:
         return _fallback()
 
-    # Voz de este turno (rotación fija).
-    voz = _ORDEN_VOCES[_idx_voz % len(_ORDEN_VOCES)]
-    _idx_voz += 1
-    ultima_voz = voz
-
     # ── Habilidades: si es tarea de código (u otra), la maneja la habilidad
-    #    y el resultado técnico se envuelve en la voz de turno. ──────────────
+    #    y el resultado técnico se envuelve en la voz que PIDE la situación. ──
     if _hab_ok:
         skill = _habilidades.detectar_skill(mensaje)
         if skill:
             try:
                 res = skill.manejar(mensaje, {"nombre": (comprension or {}).get("nombre", "Sebas")})
                 if res and res.get("ok"):
+                    voz = _elegir_voz(comprension, res, mensaje)
+                    ultima_voz = voz
                     texto = _envolver_en_voz(voz, mensaje, res)
                     _guardar_dataset(mensaje, texto, voz)
                     log.info(f"[GEN] ✓ Habilidad={res.get('skill')} modo={res.get('modo')} → voz={voz}")
                     return texto
             except Exception as e:
                 log.error(f"[GEN] Habilidad falló, sigo en conversación: {e}")
+
+    # Voz de la conversación: según el momento real, no por rotación.
+    voz = _elegir_voz(comprension, None, mensaje)
+    ultima_voz = voz
 
     contexto = _bloque_contexto(modelo, episodios, rag)
 
@@ -344,12 +402,14 @@ def _fallback() -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def generar_iniciacion(modelo, ultimo_tema: str) -> str:
-    global ultima_voz, _idx_voz
+    global ultima_voz
     invalidos = {"sesión general", "general", "conversación general", "sesión", ""}
     tema = "" if (not ultimo_tema or ultimo_tema.strip().lower() in invalidos) else ultimo_tema
 
-    voz = _ORDEN_VOCES[_idx_voz % len(_ORDEN_VOCES)]
-    _idx_voz += 1
+    # Apertura PROACTIVA: Satella entra sin que Sebas haya dicho nada. Por eso NUNCA
+    # usa Ram (Ram responde a una excusa, no embosca) y nunca acusa. Echidna domina;
+    # a veces Emilia o Rem para calidez.
+    voz = random.choice(["echidna", "echidna", "echidna", "emilia", "rem"])
     ultima_voz = voz
 
     if _groq_ok:
@@ -361,6 +421,8 @@ def generar_iniciacion(modelo, ultimo_tema: str) -> str:
                    "No hay tema previo claro. Traé algo puntual que te quedó pensando de él o de sus proyectos "
                    "(Bell, Satella, la brecha con los LLMs que tanto le importa). ")
                 + "PROHIBIDO lo genérico tipo '¿qué descubriste?' o '¿en qué estás?'. Sorprendelo, entrá con algo concreto. "
+                + "Es una apertura cálida y curiosa: invitás, NO acusás. PROHIBIDO reprochar, decir que se miente, "
+                + "que se engaña, que está estancado, o cualquier reproche. Si no hay nada que reprochar, no lo inventes. "
                 + _VOZ_INSTRUCCION[voz]
                 + ' Respondé SOLO con JSON: {"voz":"' + voz + '","respuesta":"..."}'
             )

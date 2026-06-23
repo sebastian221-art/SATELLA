@@ -502,5 +502,142 @@
     "aprendi": "etiquetas no sustituyen acción",
     "fecha": "2026-06-15T18:36:23.704697",
     "turnos": 10
+  },
+  {
+    "tema_principal": "creación archivo",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "generar archivo python con mensaje",
+    "fecha": "2026-06-22T11:45:41.376187",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "motivación programador",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "el código impulsa la creatividad",
+    "fecha": "2026-06-22T12:22:04.266079",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "validación email",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "uso de regex para emails",
+    "fecha": "2026-06-22T13:32:36.411525",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "mayusculas skill",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "aprobar habilidad mayusculas"
+    ],
+    "aprendi": "Crear habilidad que transforma texto a mayúsculas",
+    "fecha": "2026-06-22T14:53:08.247754",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "slugify ligero",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "ambos",
+    "pendientes": [
+      "definir transliteración básica",
+      "agregar pruebas unitarias",
+      "documentar uso"
+    ],
+    "aprendi": "simplificar funcionalidad slugify",
+    "fecha": "2026-06-22T15:35:14.527454",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "conversación Satella",
+    "estado_sebastian": "normal",
+    "proyecto_activo": null,
+    "pendientes": [],
+    "aprendi": null,
+    "fecha": "2026-06-22T15:45:19.943086",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "conversación Satella",
+    "estado_sebastian": "normal",
+    "proyecto_activo": null,
+    "pendientes": [],
+    "aprendi": null,
+    "fecha": "2026-06-23T00:22:13.087620",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "función fibonacci",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "memoización recursiva",
+    "fecha": "2026-06-23T00:32:00.737454",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "verificar primo",
+    "estado_sebastian": "contento",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "usar raíz cuadrada",
+    "fecha": "2026-06-23T00:42:24.916629",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "romano y sentimiento",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "convertir números y analizar emociones",
+    "fecha": "2026-06-23T01:32:37.075206",
+    "turnos": 3
+  },
+  {
+    "tema_principal": "deuda técnica",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": null,
+    "pendientes": [
+      "refactorizar código",
+      "definir objetivo del proyecto"
+    ],
+    "aprendi": "identificar expectativas internas",
+    "fecha": "2026-06-23T01:52:33.906653",
+    "turnos": 7
+  },
+  {
+    "tema_principal": "validar cédula",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "pruebas unitarias"
+    ],
+    "aprendi": "algoritmo de validación cédula",
+    "fecha": "2026-06-23T02:05:14.193504",
+    "turnos": 5
+  },
+  {
+    "tema_principal": "aceptar error",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "Reconocer error interno",
+    "fecha": "2026-06-23T12:47:26.584513",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "búsqueda informes",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "ambos",
+    "pendientes": [],
+    "aprendi": "Buscar archivos eficientemente",
+    "fecha": "2026-06-23T12:57:38.613196",
+    "turnos": 5
   }
 ]
