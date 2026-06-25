@@ -111,19 +111,47 @@ def _tokens(texto: str) -> set:
 
 
 def _semillas(texto: str, max_semillas: int = 4) -> list:
-    """Nodos del grafo que aparecen en el texto (matcheo simple; HDC lo afina luego)."""
+    """Nodos del grafo conectados al texto. Usa alias + HDC difuso si están."""
     toks = _tokens(texto)
-    if not toks:
+    if not toks and not (texto or "").strip():
         return []
+
+    # Capa alias: expandir los tokens con sus formas canónicas (browser→navegador).
+    hdc = None
+    toks_exp = set(toks)
+    try:
+        from nucleo import hdc as _hdc
+        hdc = _hdc
+        for t in toks:
+            canon = hdc.resolver_alias(t)
+            if canon != t:
+                toks_exp |= _tokens(canon)
+    except Exception:
+        hdc = None
+
     candidatos = []
     for k, nodo in _nodos.items():
         ktoks = _tokens(k)
-        # coincide si el concepto está nombrado en el texto (por tokens o substring)
-        if (ktoks & toks) or (k in _norm(texto)):
-            score = len(ktoks & toks) + nodo["peso"] * 0.1
+        if (ktoks & toks_exp) or (k in _norm(texto)):
+            score = len(ktoks & toks_exp) + nodo["peso"] * 0.1
             candidatos.append((score, k))
     candidatos.sort(reverse=True)
-    return [k for _, k in candidatos[:max_semillas]]
+    semillas = [k for _, k in candidatos[:max_semillas]]
+
+    # Capa HDC: si faltan semillas, buscar conceptos PARECIDOS por n-gramas (typos/variantes).
+    # Se compara TOKEN por token (no la frase entera, que diluiría la similitud).
+    if hdc is not None and hdc.disponible() and len(semillas) < max_semillas:
+        nombres = [n["nombre"] for n in _nodos.values()]
+        for tok in sorted(toks, key=len, reverse=True):
+            if len(tok) < 4:
+                continue
+            for nombre in hdc.mejores(tok, nombres, k=1):
+                k = _norm(nombre)
+                if k in _nodos and k not in semillas:
+                    semillas.append(k)
+            if len(semillas) >= max_semillas:
+                break
+    return semillas[:max_semillas]
 
 
 def relacionados(concepto: str, max_n: int = 6) -> list:

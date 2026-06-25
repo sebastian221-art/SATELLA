@@ -639,5 +639,52 @@
     "aprendi": "Buscar archivos eficientemente",
     "fecha": "2026-06-23T12:57:38.613196",
     "turnos": 5
+  },
+  {
+    "tema_principal": "informes y datos",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "la búsqueda no siempre ayuda",
+    "fecha": "2026-06-23T14:12:55.062335",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "análisis de datos",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "identificar patrones ocultos"
+    ],
+    "aprendi": "preguntar lo implícito",
+    "fecha": "2026-06-23T14:35:05.487195",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "conversación Satella",
+    "estado_sebastian": "normal",
+    "proyecto_activo": null,
+    "pendientes": [],
+    "aprendi": null,
+    "fecha": "2026-06-23T14:56:23.956876",
+    "turnos": 4
+  },
+  {
+    "tema_principal": "conversación Satella",
+    "estado_sebastian": "normal",
+    "proyecto_activo": null,
+    "pendientes": [],
+    "aprendi": null,
+    "fecha": "2026-06-23T15:08:22.173598",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "precio dólar",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "obtener hora y cotización dólar",
+    "fecha": "2026-06-23T15:16:01.262155",
+    "turnos": 8
   }
 ]

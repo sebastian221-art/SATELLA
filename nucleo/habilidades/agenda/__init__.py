@@ -1,0 +1,1 @@
+"""Habilidad agenda: tareas programadas (autonomía controlada)."""

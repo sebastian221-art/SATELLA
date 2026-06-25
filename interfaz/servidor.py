@@ -192,7 +192,42 @@ def _timer_iniciacion():
                 log.error(f"Timer iniciación error: {e}")
 
 
+def _timer_agenda():
+    """Dispara las tareas agendadas a su hora. Compuerta: las sensibles no se auto-ejecutan."""
+    from nucleo import agenda
+    while True:
+        time.sleep(30)
+        if not _estado["cliente_conectado"]:
+            continue
+        try:
+            vencidas = agenda.vencidas()
+        except Exception as e:
+            log.error(f"[AGENDA] error revisando: {e}")
+            continue
+        for tarea in vencidas:
+            intencion = tarea.get("intencion", "")
+            try:
+                if agenda.es_intencion_sensible(intencion):
+                    texto = (f"Tenías agendado: \u00ab{intencion}\u00bb. Es una acci\u00f3n delicada, "
+                             f"as\u00ed que no la hice sola. \u00bfQuer\u00e9s que la haga ahora?")
+                    log.info(f"[AGENDA] tarea sensible #{tarea['id']} \u2192 pido confirmaci\u00f3n")
+                    socketio.emit('satella_responde', {'texto': texto, 'voz': 'echidna', 'iniciacion': True})
+                else:
+                    log.info(f"[AGENDA] disparo #{tarea['id']}: {intencion}")
+                    resultado = procesar_mensaje(intencion, voz_habilitada=_estado["voz_activa"])
+                    socketio.emit('satella_responde', {
+                        'texto': resultado['respuesta'],
+                        'audio': resultado.get('audio_b64'),
+                        'voz': resultado.get('voz', 'echidna'),
+                        'iniciacion': True,
+                    })
+                _estado["ultimo_mensaje_ts"] = time.time()
+            except Exception as e:
+                log.error(f"[AGENDA] error disparando #{tarea.get('id')}: {e}")
+
+
 def iniciar():
     threading.Thread(target=_timer_iniciacion, daemon=True).start()
+    threading.Thread(target=_timer_agenda, daemon=True).start()
     log.info(f"Satella corriendo en http://localhost:{PORT}")
     socketio.run(app, host=HOST, port=PORT, debug=False, allow_unsafe_werkzeug=True)

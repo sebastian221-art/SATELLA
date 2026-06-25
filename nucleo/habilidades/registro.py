@@ -29,7 +29,7 @@ _PAQUETE = "nucleo.habilidades"
 # un proyecto (o un "cloná …") la toma el agente, no el analizador ni la skill
 # de código suelta. Un snippet suelto ("escribime una función") sigue yendo a 'python'.
 _PRIORIDAD = ["gobernador", "navegador", "creador", "mezclador", "planificador",
-              "agente_cc", "agente_codigo", "copia", "analisis", "sistema", "busqueda", "python"]
+              "agente_cc", "agente_codigo", "copia", "analisis", "sistema", "agenda", "busqueda", "python"]
 
 _SKILLS = []
 

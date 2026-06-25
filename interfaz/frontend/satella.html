@@ -281,6 +281,7 @@
   <div class="status-bar" id="status-bar"></div>
   <div class="input-inner">
     <textarea id="input-texto" placeholder="Escribe algo..." rows="1" autocomplete="off"></textarea>
+    <button class="btn-mic" id="btn-wake" title="Activación por voz: decí 'Satella...'" onclick="toggleWake()">👂</button>
     <button class="btn-mic" id="btn-mic" title="Hablar" onclick="toggleMic()">🎤</button>
     <button class="btn-send" id="btn-send" title="Enviar" onclick="enviarMensaje()">↑</button>
   </div>
@@ -308,6 +309,8 @@ console.log('%c Satella front v3 — tarjetas de archivo activas ', 'background:
 
 // ── Estado ────────────────────────────────────────────────────
 let vozActiva = true, grabando = false, recognition = null, audioActual = null;
+let modoWake = false, wakeRecog = null, wakeArmado = false, ignorarWake = false;
+const WAKE_WORDS = ['satella','sattela','satela','zatella','sabella','sant ella'];
 
 // ── DOM refs ──────────────────────────────────────────────────
 const messagesEl = document.getElementById('messages');
@@ -625,12 +628,77 @@ function detenerGrabacion() {
   grabando = false; micBtn.classList.remove('recording'); micBtn.textContent = '🎤'; setStatus('');
 }
 
+// ── Activación por voz: "Satella ..." (como Alexa, en el navegador) ──
+const wakeBtn = document.getElementById('btn-wake');
+function toggleWake() {
+  if (modoWake) { detenerWake(); return; }
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    setStatus('Tu navegador no soporta voz. Usa Chrome.'); return;
+  }
+  if (grabando) detenerGrabacion();   // no chocar con el micrófono manual
+  iniciarWake();
+}
+function iniciarWake() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  wakeRecog = new SR();
+  wakeRecog.lang = 'es-CO';
+  wakeRecog.continuous = true;
+  wakeRecog.interimResults = false;
+  wakeRecog.onresult = (e) => {
+    if (ignorarWake) return;                       // no escucharse a sí misma
+    const r = e.results[e.results.length - 1];
+    if (!r || !r.isFinal) return;
+    const crudo = r[0].transcript.trim();
+    const texto = crudo.toLowerCase();
+
+    // Si ya dijo "Satella" antes y ahora viene el comando:
+    if (wakeArmado) {
+      wakeArmado = false;
+      if (crudo) { inputEl.value = crudo; enviarMensaje(); }
+      setStatus('👂 escuchando — decí "Satella..."');
+      return;
+    }
+    // Buscar la palabra de activación en la frase:
+    let idx = -1, hit = '';
+    for (const w of WAKE_WORDS) {
+      const p = texto.indexOf(w);
+      if (p >= 0 && (idx === -1 || p < idx)) { idx = p; hit = w; }
+    }
+    if (idx === -1) return;                         // no la nombró → ignorar
+    let resto = crudo.slice(idx + hit.length).replace(/^[\s,.:;¡!¿?-]+/, '').trim();
+    if (resto) {
+      inputEl.value = resto; enviarMensaje();        // "Satella, abrime el vscode"
+    } else {
+      wakeArmado = true;                             // dijo solo "Satella" → espera el comando
+      setStatus('👂 te escucho...');
+    }
+  };
+  wakeRecog.onerror = (ev) => {
+    if (ev.error === 'no-speech' || ev.error === 'aborted') return;  // normales en modo continuo
+    if (ev.error === 'not-allowed') { setStatus('Dale permiso al micrófono'); detenerWake(); }
+  };
+  wakeRecog.onend = () => { if (modoWake) { setTimeout(() => { try { wakeRecog.start(); } catch (e) {} }, 300); } };
+  try { wakeRecog.start(); } catch (e) {}
+  modoWake = true;
+  wakeBtn.classList.add('recording');
+  setStatus('👂 escuchando — decí "Satella..."');
+}
+function detenerWake() {
+  modoWake = false; wakeArmado = false;
+  if (wakeRecog) { try { wakeRecog.stop(); } catch (e) {} wakeRecog = null; }
+  wakeBtn.classList.remove('recording'); setStatus('');
+}
+
+
 // ── Audio ─────────────────────────────────────────────────────
 function reproducirAudio(base64) {
   try {
     if (audioActual) { audioActual.pause(); audioActual = null; }
     const audio = new Audio('data:audio/mp3;base64,' + base64);
     audioActual = audio;
+    audio.onplay = () => { ignorarWake = true; };                 // no se escucha a sí misma
+    audio.onended = () => { setTimeout(() => { ignorarWake = false; }, 400); };
+    audio.onerror = () => { ignorarWake = false; };
     audio.play().catch(e => console.warn('Audio autoplay:', e));
   } catch (e) { console.warn('Error reproduciendo audio:', e); }
 }
