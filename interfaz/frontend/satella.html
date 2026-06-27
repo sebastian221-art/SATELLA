@@ -282,6 +282,7 @@
   <div class="input-inner">
     <textarea id="input-texto" placeholder="Escribe algo..." rows="1" autocomplete="off"></textarea>
     <button class="btn-mic" id="btn-wake" title="Activación por voz: decí 'Satella...'" onclick="toggleWake()">👂</button>
+    <button class="btn-mic" id="btn-charla" title="Modo charla: hablá continuo, te respondo cuando hacés una pausa (como una llamada)" onclick="toggleCharla()">💬</button>
     <button class="btn-mic" id="btn-mic" title="Hablar" onclick="toggleMic()">🎤</button>
     <button class="btn-send" id="btn-send" title="Enviar" onclick="enviarMensaje()">↑</button>
   </div>
@@ -311,6 +312,12 @@ console.log('%c Satella front v3 — tarjetas de archivo activas ', 'background:
 let vozActiva = true, grabando = false, recognition = null, audioActual = null;
 let modoWake = false, wakeRecog = null, wakeArmado = false, ignorarWake = false;
 const WAKE_WORDS = ['satella','sattela','satela','zatella','sabella','sant ella'];
+
+// ── Estado MODO CHARLA (escucha continua, corte por silencio) ──
+let modoCharla = false, charlaRecog = null, charlaBuffer = '';
+let charlaSilencio = null, charlaHablando = false;
+const CHARLA_SILENCIO_MS = 1300;   // pausa que cuenta como "terminó la frase"
+const CHARLA_COLA_MS = 600;        // colchón tras hablar Satella: deja morir el eco del parlante antes de reabrir el oído
 
 // ── DOM refs ──────────────────────────────────────────────────
 const messagesEl = document.getElementById('messages');
@@ -690,16 +697,125 @@ function detenerWake() {
 }
 
 
+// ── MODO CHARLA: hablás continuo, te respondo cuando hacés una pausa ──────────
+// No hace falta decir "Satella". Escucha todo el tiempo; cuando dejás de hablar
+// ~1.3s, manda lo acumulado. Mientras Satella habla, se silencia (anti-eco) y
+// retoma cuando termina. Como una llamada.
+const charlaBtn = document.getElementById('btn-charla');
+
+function toggleCharla() {
+  if (modoCharla) { detenerCharla(); return; }
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    setStatus('Tu navegador no soporta voz. Usa Chrome.'); return;
+  }
+  // No correr dos modos de voz a la vez.
+  if (grabando) detenerGrabacion();
+  if (modoWake) detenerWake();
+  iniciarCharla();
+}
+
+function iniciarCharla() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  charlaRecog = new SR();
+  charlaRecog.lang = 'es-CO';
+  charlaRecog.continuous = true;
+  charlaRecog.interimResults = true;   // necesario para detectar la pausa
+  charlaRecog.maxAlternatives = 1;
+
+  charlaRecog.onresult = (e) => {
+    if (charlaHablando) return;          // anti-eco: ignorar mientras Satella habla
+    let interim = '', finalNuevo = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalNuevo += t + ' ';
+      else interim += t;
+    }
+    if (finalNuevo) charlaBuffer += finalNuevo;
+    const enVivo = (charlaBuffer + interim).trim();
+    if (enVivo) {
+      reiniciarSilencioCharla();
+      setStatus('💬 te escucho: ' + enVivo.slice(-70));
+    }
+  };
+
+  charlaRecog.onerror = (ev) => {
+    if (ev.error === 'no-speech' || ev.error === 'aborted') return;   // normales en continuo
+    if (ev.error === 'not-allowed') { setStatus('Dale permiso al micrófono'); detenerCharla(); }
+  };
+
+  // El navegador corta solo cada tanto; en modo charla lo reanudamos —
+  // PERO nunca mientras Satella habla (ahí el oído queda cerrado a propósito).
+  charlaRecog.onend = () => {
+    if (modoCharla && !charlaHablando) {
+      setTimeout(() => { try { charlaRecog.start(); } catch (e) {} }, 250);
+    }
+  };
+
+  try { charlaRecog.start(); } catch (e) {}
+  modoCharla = true;
+  charlaBtn.classList.add('recording');
+  setStatus('💬 modo charla — hablá tranquilo, te respondo cuando pares');
+}
+
+function reiniciarSilencioCharla() {
+  clearTimeout(charlaSilencio);
+  charlaSilencio = setTimeout(() => {
+    const txt = charlaBuffer.trim();
+    charlaBuffer = '';
+    if (txt) {
+      inputEl.value = txt;
+      enviarMensaje();
+      setStatus('💬 modo charla — pensando...');
+    } else {
+      setStatus('💬 modo charla — te escucho');
+    }
+  }, CHARLA_SILENCIO_MS);
+}
+
+function detenerCharla() {
+  modoCharla = false;
+  charlaBuffer = '';
+  clearTimeout(charlaSilencio);
+  if (charlaRecog) { try { charlaRecog.stop(); } catch (e) {} charlaRecog = null; }
+  charlaBtn.classList.remove('recording');
+  setStatus('');
+}
+
+
 // ── Audio ─────────────────────────────────────────────────────
 function reproducirAudio(base64) {
   try {
     if (audioActual) { audioActual.pause(); audioActual = null; }
     const audio = new Audio('data:audio/mp3;base64,' + base64);
     audioActual = audio;
-    audio.onplay = () => { ignorarWake = true; };                 // no se escucha a sí misma
-    audio.onended = () => { setTimeout(() => { ignorarWake = false; }, 400); };
-    audio.onerror = () => { ignorarWake = false; };
-    audio.play().catch(e => console.warn('Audio autoplay:', e));
+    audio.onplay = () => {
+      ignorarWake = true;                       // wake: no se escucha a sí misma
+      // ── ANTI-ECO DURO (modo charla) ──
+      // No alcanza con "ignorar": la Web Speech ACUMULA y suelta la frase recién
+      // tras el silencio (o sea, después de que Satella terminó). Por eso hay que
+      // ABORTAR (abort descarta lo capturado; stop lo soltaría) y reabrir limpio.
+      charlaHablando = true;
+      charlaBuffer = '';
+      clearTimeout(charlaSilencio);
+      if (charlaRecog) { try { charlaRecog.abort(); } catch (e) {} }
+    };
+    const reanudar = () => {
+      ignorarWake = false;
+      charlaBuffer = '';
+      if (modoCharla) {
+        // Esperar a que muera la cola/eco del parlante ANTES de reabrir el oído.
+        setTimeout(() => {
+          charlaHablando = false;
+          try { charlaRecog.start(); } catch (e) {}
+          setStatus('💬 modo charla — te escucho');
+        }, CHARLA_COLA_MS);
+      } else {
+        charlaHablando = false;
+      }
+    };
+    audio.onended = reanudar;
+    audio.onerror = reanudar;
+    audio.play().catch(e => { console.warn('Audio autoplay:', e); reanudar(); });
   } catch (e) { console.warn('Error reproduciendo audio:', e); }
 }
 

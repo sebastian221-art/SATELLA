@@ -27,10 +27,10 @@ Responde SOLO con JSON válido, sin texto extra, sin backticks:
   "rag_keywords": "2-3 palabras clave para buscar conocimiento relevante o null"
 }}
 
-Reglas para el nombre:
-- "Sebas" → momento normal, afectuoso, cotidiano (80% de los casos)
-- "Sebastian" → momento serio, tema importante, requiere atención
-- "Juan Sebastian" → cometió error grave, Satella genuinamente molesta, situación crítica"""
+Reglas para el nombre (DEFAULT FUERTE = "Sebas", ante la duda SIEMPRE "Sebas"):
+- "Sebas" → casi siempre. Normal, afectuoso, cotidiano, dudas, charla, pedidos técnicos, frustración común. Es el 90% de los casos.
+- "Sebastian" → SOLO si el tema es claramente serio/pesado y lo amerita de verdad.
+- "Juan Sebastian" → MUY RARO, casi nunca. Únicamente si cometió un error grave real o Satella está genuinamente molesta. NUNCA para un saludo, un pedido técnico o una duda común."""
 
 
 def comprender(mensaje: str, contexto: str, modelo: str) -> dict:

@@ -10,6 +10,7 @@ prompt rompan nada (probado). `-p` sin argumento lee el prompt de stdin.
 """
 import os
 import re
+import ast
 import json
 import time
 import shutil
@@ -88,17 +89,49 @@ def _extraer_bloque(texto: str, lenguaje: str) -> str:
     return texto.strip()
 
 
-def generar_codigo(requerimiento: str, lenguaje: str = "python") -> dict:
-    """Pide el código a Claude Code (prompt por stdin). Devuelve {ok, codigo, ...}."""
+def _parece_codigo(texto: str, lenguaje: str) -> bool:
+    """¿Esto es código o es prosa/una pregunta de Claude Code?
+    Claude Code a veces, ante un pedido ambiguo, responde con una pregunta en vez
+    de código. Si la metemos en un bloque y la ejecutamos, queda el papelón de
+    'correr una pregunta en español'. Esta guardia lo evita."""
+    if not texto or not texto.strip():
+        return False
+    if lenguaje == "python":
+        try:
+            ast.parse(texto)
+            return True
+        except SyntaxError:
+            return False
+    # Otros lenguajes: heurística simple. Una pregunta sin casi señales de código = prosa.
+    señales = sum(texto.count(c) for c in "{};=()")
+    if texto.rstrip().endswith("?") and señales < 3:
+        return False
+    return True
+
+
+def generar_codigo(requerimiento: str, lenguaje: str = "python", contexto: str = "") -> dict:
+    """Pide el código a Claude Code (prompt por stdin). Devuelve {ok, codigo, ...}.
+    Si Claude Code responde con una aclaración en vez de código, devuelve
+    {ok: False, aclaracion: ...} para que la skill la releve sin ejecutarla."""
     prefijo = _prefijo_comando()
     if not prefijo:
         return {"ok": False, "razon": "Claude Code (claude) no está instalado o no lo encuentro."}
 
+    bloque_ctx = ""
+    if contexto:
+        bloque_ctx = (
+            "Contexto de la conversación reciente (el pedido puede referirse a algo de acá; "
+            "usalo para resolver referencias como 'eso', 'lo que dijimos', 'la función anterior'):\n"
+            f"{contexto}\n\n"
+        )
     prompt = (
-        f"Escribí en {lenguaje} lo siguiente:\n{requerimiento}\n\n"
+        bloque_ctx
+        + f"Escribí en {lenguaje} lo siguiente:\n{requerimiento}\n\n"
         f"Devolvé ÚNICAMENTE el código, completo y correcto, en un solo bloque "
         f"```{lenguaje} ... ```. No escribas archivos, no des explicaciones largas. "
-        f"Comentarios y nombres en español. Manejá los casos borde."
+        f"Comentarios y nombres en español. Manejá los casos borde. "
+        f"Si el pedido es ambiguo incluso con el contexto, NO preguntes: entregá tu "
+        f"mejor interpretación en código igual."
     )
 
     # -p SIN argumento → lee el prompt de stdin (esquiva el quoting de cmd.exe).
@@ -163,6 +196,14 @@ def generar_codigo(requerimiento: str, lenguaje: str = "python") -> dict:
     codigo = _extraer_bloque(raw, lenguaje)
     if not codigo:
         return {"ok": False, "razon": "Claude Code no devolvió código."}
+
+    # RED DE SEGURIDAD: si lo que volvió no parece código (es una pregunta o prosa,
+    # incluso si vino dentro de un bloque ```), NO es código — es una aclaración.
+    # No la ejecutamos: la pasamos como tal.
+    if not _parece_codigo(codigo, lenguaje):
+        aclar = raw if "```" not in raw else codigo
+        return {"ok": False, "aclaracion": aclar.strip(),
+                "costo": data.get("total_cost_usd"), "turnos": data.get("num_turns")}
 
     return {"ok": True, "codigo": codigo, "raw": raw,
             "costo": data.get("total_cost_usd"), "turnos": data.get("num_turns")}

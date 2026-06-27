@@ -56,7 +56,7 @@ def _verificar_python(codigo: str):
     return False, (r.get("stderr") or "error desconocido")[:600]
 
 
-def generar(requerimiento: str, lenguaje: str = "python") -> dict:
+def generar(requerimiento: str, lenguaje: str = "python", contexto: str = "") -> dict:
     t0 = time.time()  # presupuesto de tiempo: la entrega NUNCA se cuelga esperando
 
     # 1) ¿Está en el cuaderno (pedido casi idéntico, ya resuelto)?
@@ -66,12 +66,17 @@ def generar(requerimiento: str, lenguaje: str = "python") -> dict:
                 "plan": "", "tests": "", "tests_pasaron": cache.get("verdicto"),
                 "salida_tests": "", "ciclos": 0, "desde_cache": True}
 
-    # 2) Se lo pido a Claude Code.
+    # 2) Se lo pido a Claude Code (con el contexto de la charla, si lo hay).
     if not _claude_code.disponible():
         return {"ok": False}
-    gen = _claude_code.generar_codigo(requerimiento, lenguaje)
+    gen = _claude_code.generar_codigo(requerimiento, lenguaje, contexto)
     if not gen.get("ok"):
-        return {"ok": False, "razon": gen.get("razon", "")}
+        out = {"ok": False, "razon": gen.get("razon", "")}
+        # Si Claude Code pidió una aclaración (no es código), la pasamos hacia arriba.
+        if gen.get("aclaracion"):
+            out["aclaracion"] = gen["aclaracion"]
+            out["costo"] = gen.get("costo")
+        return out
 
     codigo = gen["codigo"]
 

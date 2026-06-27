@@ -229,5 +229,23 @@
     "codigo": "import re\n\ndef validar_cedula_colombiana(cedula) -> list:\n    \"\"\"\n    Valida un número de cédula de ciudadanía colombiana.\n    Retorna [es_valida, mensaje].\n\n    Reglas aplicadas (Registraduría Nacional del Estado Civil):\n    - Solo dígitos numéricos\n    - Entre 3 y 10 dígitos\n    - No puede ser todo ceros ni tener ceros al inicio\n    - Rango razonable: 1 a 9_999_999_999\n    \"\"\"\n\n    # Manejar None y tipos no string/int\n    if cedula is None:\n        return [False, \"La cédula no puede ser nula.\"]\n\n    # Convertir a string y quitar espacios\n    cedula_str = str(cedula).strip()\n\n    # Vacía\n    if not cedula_str:\n        return [False, \"La cédula no puede estar vacía.\"]\n\n    # Solo dígitos (sin guiones, puntos, letras, etc.)\n    if not re.fullmatch(r'\\d+', cedula_str):\n        return [False, \"La cédula solo puede contener dígitos numéricos.\"]\n\n    # Longitud entre 3 y 10 dígitos (cédulas antiguas pueden ser cortas)\n    largo = len(cedula_str)\n    if largo < 3:\n        return [False, f\"La cédula es demasiado corta ({largo} dígito/s). Mínimo 3.\"]\n    if largo > 10:\n        return [False, f\"La cédula es demasiado larga ({largo} dígitos). Máximo 10.\"]\n\n    numero = int(cedula_str)\n\n    # No puede ser cero\n    if numero == 0:\n        return [False, \"La cédula no puede ser cero.\"]\n\n    # No puede tener ceros al inicio (ej: \"01234567\")\n    if cedula_str[0] == '0':\n        return [False, \"La cédula no puede tener ceros al inicio.\"]\n\n    return [True, \"Cédula válida.\"]\n\n\n# --- Pruebas básicas ---\nif __name__ == \"__main__\":\n    casos = [\n        (\"1020304050\", True),   # cédula normal válida\n        (\"1234567890\", True),   # 10 dígitos válido\n        (\"12345\", True),        # cédula corta válida\n        (\"0\",        False),    # cero\n        (\"\",         False),    # vacía\n        (None,       False),    # nulo\n        (\"0123456\",  False),    # cero al inicio\n        (\"12345678901\", False), # 11 dígitos, demasiado largo\n        (\"12\",       False),    # demasiado corto\n        (\"1O234567\", False),    # letra O mezclada con números\n        (\"  123456 \", True),    # espacios → se limpian\n        (\"123.456\",  False),    # punto decimal no permitido\n        (\"-1234567\", False),    # negativo no permitido\n    ]\n\n    print(f\"{'Entrada':<15} {'Esperado':<10} {'Resultado':<10} {'Mensaje'}\")\n    print(\"-\" * 70)\n    for entrada, esperado in casos:\n        valida, mensaje = validar_cedula_colombiana(entrada)\n        icono = \"✓\" if valida == esperado else \"✗ FALLO\"\n        print(f\"{str(entrada):<15} {str(esperado):<10} {str(valida):<10} {mensaje}  {icono}\")",
     "verdicto": true,
     "resumen": "solución generada"
+  },
+  {
+    "ts": "2026-06-27 12:19:09",
+    "modo": "generacion",
+    "lenguaje": "python",
+    "entrada": "escribime una función en python que invierta una lista",
+    "codigo": "def invertir_lista(lista):\n    # Caso borde: lista vacía o un solo elemento\n    if not lista or len(lista) == 1:\n        return lista[:]\n    return lista[::-1]",
+    "verdicto": true,
+    "resumen": "solución generada"
+  },
+  {
+    "ts": "2026-06-27 13:55:26",
+    "modo": "generacion",
+    "lenguaje": "python",
+    "entrada": "Me parece bien. ¿Y cómo lo implementarías o qué función crearías o qué harías para poder poner en práctica lo que estás diciendo?",
+    "codigo": "No tengo contexto de la conversación anterior para saber qué estás implementando. ¿Podés contarme qué problema o funcionalidad querés resolver?",
+    "verdicto": false,
+    "resumen": "solución generada"
   }
 ]

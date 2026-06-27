@@ -25,7 +25,7 @@ def manejar(texto: str, contexto: dict = None) -> dict:
     codigo = detector.extraer_codigo(texto)
     modo = detector.detectar_modo(texto, codigo)
     if modo == "generacion":
-        return _generar(texto)
+        return _generar(texto, contexto)
     if modo == "ejecutar":
         return _ejecutar(codigo)
     if modo == "debug":
@@ -33,11 +33,39 @@ def manejar(texto: str, contexto: dict = None) -> dict:
     return _analizar(codigo)
 
 
+def _contexto_conversacion(contexto: dict) -> str:
+    """Arma un resumen corto de la charla reciente para que Claude Code resuelva
+    referencias como 'eso' / 'lo que dijimos'. Sin esto, un pedido que depende del
+    contexto le llega suelto y Claude Code pregunta '¿de qué me hablás?'."""
+    if not contexto:
+        return ""
+    hist = contexto.get("historial") or []
+    if not hist:
+        return ""
+    lineas = []
+    for m in hist[-4:]:
+        rol = "Sebas" if m.get("role") == "user" else "Satella"
+        cont = str(m.get("content", "")).strip()[:300]
+        if cont:
+            lineas.append(f"{rol}: {cont}")
+    return "\n".join(lineas)
+
+
 # ── Generación: Claude Code + verificación local + análisis ────────────────────
-def _generar(requerimiento: str) -> dict:
+def _generar(requerimiento: str, contexto: dict = None) -> dict:
     lenguaje = detector.detectar_lenguaje(requerimiento)
-    gen = generador.generar(requerimiento, lenguaje)
+    ctx_txt = _contexto_conversacion(contexto)
+    gen = generador.generar(requerimiento, lenguaje, ctx_txt)
     if not gen.get("ok"):
+        # Claude Code pidió una aclaración (el pedido era ambiguo aun con contexto):
+        # la relevamos tal cual, NO la ejecutamos como si fuera código.
+        if gen.get("aclaracion"):
+            return {
+                "ok": True, "skill": NOMBRE, "modo": "generacion",
+                "resumen": "Necesito un dato más para escribir el código",
+                "cuerpo": gen["aclaracion"].strip(),
+                "costo": gen.get("costo"),
+            }
         return {
             "ok": True, "skill": NOMBRE, "modo": "generacion",
             "resumen": "No pude generar el código",
@@ -93,7 +121,8 @@ def _generar(requerimiento: str) -> dict:
     resumen = ("Recuperé la solución del cuaderno." if desde_cache
                else f"Generé la solución en {lenguaje} con Claude Code"
                     + (" y la probé, anda." if tp is True else "."))
-    return {"ok": True, "skill": NOMBRE, "modo": "generacion", "resumen": resumen, "cuerpo": cuerpo}
+    return {"ok": True, "skill": NOMBRE, "modo": "generacion", "resumen": resumen,
+            "cuerpo": cuerpo, "costo": gen.get("costo")}
 
 
 # ── Análisis: razonamiento + métricas (incluye Big-O) ──────────────────────────

@@ -324,7 +324,7 @@ def manejar(texto: str, contexto: dict = None) -> dict:
             return contrato.resultado(NOMBRE, "error", f"No pude crear {nombre}", r["_falla"])
         return contrato.resultado(
             NOMBRE, "creado", f"Proyecto '{nombre}' creado",
-            r["resultado"] + f"\n\n— Claude Code{_meta_txt(r)}")
+            r["resultado"] + f"\n\n— Claude Code{_meta_txt(r)}", costo=r.get("costo"))
 
     # ── MODO MISIÓN ───────────────────────────────────────────────────────────
     proyecto = _proyecto_existente(texto)
@@ -364,4 +364,4 @@ def _ejecutar_mision(texto, t, proyecto, cwd) -> dict:
         return contrato.resultado(NOMBRE, "error", f"Claude Code no pudo en {proyecto}", r["_falla"])
     return contrato.resultado(
         NOMBRE, "ejecutado", f"Listo en {proyecto}",
-        r["resultado"] + f"\n\n— Claude Code{_meta_txt(r)}")
+        r["resultado"] + f"\n\n— Claude Code{_meta_txt(r)}", costo=r.get("costo"))

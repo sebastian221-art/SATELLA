@@ -1,6 +1,56 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SATELLA — requirements.txt
+# Generado escaneando el código VIVO del repo (sin contar archivos muertos).
+# Nota: spacy y nltk NO van: solo estaban en enriquecedor.py (código muerto).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Núcleo: servidor web + tiempo real ──────────────────────────────────────
 flask
 flask-socketio
+
+# ── Cerebro alquilado (Groq) ────────────────────────────────────────────────
 groq
+
+# ── Voz (TTS) ───────────────────────────────────────────────────────────────
 edge-tts
+
+# ── Configuración / red ─────────────────────────────────────────────────────
 python-dotenv
 requests
+httpx
+
+# ── Memoria asociativa (HDC) ────────────────────────────────────────────────
+numpy
+
+# ── Habilidad navegador (Playwright + credenciales) ─────────────────────────
+playwright
+keyring
+# OJO: además de 'pip install', el navegador necesita el binario del browser:
+#   playwright install chromium
+
+# ── Habilidad sistema (control de OS) ───────────────────────────────────────
+psutil
+send2trash
+
+# ── Habilidad agenda (autonomía controlada) ─────────────────────────────────
+# Opcional: sin croniter, la agenda igual anda con intervalo/diario;
+# croniter solo agrega soporte de expresiones cron completas.
+croniter
+
+# ── Habilidad análisis (extracción web) ─────────────────────────────────────
+beautifulsoup4
+
+# ── Habilidad python (análisis de complejidad de código) ────────────────────
+# Import protegido (try/except): si falta, la skill degrada sin romper.
+radon
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPCIONALES (instalá solo si los usás)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# DeepSeek como proveedor de código alternativo a Groq (cerebro.py).
+# Solo si en config ponés CODE_PROVIDER = "deepseek".
+# openai
+
+# Hot-reload para desarrollo (dev.py). No hace falta para correr Satella normal.
+# watchdog

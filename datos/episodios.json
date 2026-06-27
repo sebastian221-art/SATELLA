@@ -686,5 +686,40 @@
     "aprendi": "obtener hora y cotización dólar",
     "fecha": "2026-06-23T15:16:01.262155",
     "turnos": 8
+  },
+  {
+    "tema_principal": "derivada gradiente",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "ejecutar código Python",
+      "evaluar derivada en punto específico"
+    ],
+    "aprendi": "usar SymPy para derivadas y gradientes",
+    "fecha": "2026-06-27T13:09:38.305281",
+    "turnos": 29
+  },
+  {
+    "tema_principal": "derivada gradiente",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "aplicar derivada gradiente"
+    ],
+    "aprendi": null,
+    "fecha": "2026-06-27T13:48:28.259032",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "validación datos",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "capa de auto‑optimización",
+      "integrar función de validación"
+    ],
+    "aprendi": "validar datos previene errores críticos",
+    "fecha": "2026-06-27T14:12:08.825926",
+    "turnos": 18
   }
 ]

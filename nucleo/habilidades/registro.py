@@ -14,6 +14,7 @@ exista la carpeta con un skill.py válido. recargar() las relee en caliente.
 import importlib
 import logging
 import os
+import time
 
 from nucleo.habilidades import contrato
 
@@ -29,7 +30,8 @@ _PAQUETE = "nucleo.habilidades"
 # un proyecto (o un "cloná …") la toma el agente, no el analizador ni la skill
 # de código suelta. Un snippet suelto ("escribime una función") sigue yendo a 'python'.
 _PRIORIDAD = ["gobernador", "navegador", "creador", "mezclador", "planificador",
-              "agente_cc", "agente_codigo", "copia", "analisis", "sistema", "agenda", "busqueda", "python"]
+              "agente_cc", "agente_codigo", "copia", "analisis", "sistema", "agenda",
+              "telemetria", "busqueda", "python"]
 
 _SKILLS = []
 
@@ -100,6 +102,43 @@ def detectar_skill(texto: str, codigo_adjunto: str = ""):
         except Exception as e:
             log.error(f"[HAB] {getattr(s, 'NOMBRE', '?')} detecta() falló: {e}")
     return None
+
+
+def ejecutar(skill, texto: str, contexto: dict = None):
+    """
+    ÚNICO PUNTO DE EJECUCIÓN de una habilidad. Invoca manejar() midiendo el tiempo
+    y dejando el evento en el cuaderno (telemetría), sin que la skill se entere.
+
+    Tanto generacion.py como el ejecutor del planificador pasan por acá: así TODA
+    invocación de habilidad queda registrada en un solo lugar, sin tocar el contrato.
+
+    El costo se lee del resultado SOLO si la skill lo expone (clave opcional 'costo');
+    las skills que no la traen no se ven afectadas — el costo queda en None.
+
+    Propaga la excepción si manejar() falla (para no cambiar el comportamiento previo:
+    generacion.py la atrapa y cae a conversación). El evento de fallo se registra
+    igual en el finally, ANTES de propagar.
+    """
+    nombre = getattr(skill, "NOMBRE", "?")
+    t0 = time.perf_counter()
+    res = None
+    error = None
+    try:
+        res = skill.manejar(texto, contexto)
+        return res
+    except Exception as e:
+        error = str(e)
+        raise
+    finally:
+        ms = int((time.perf_counter() - t0) * 1000)
+        ok = bool(res and isinstance(res, dict) and res.get("ok"))
+        modo = (res.get("modo") if isinstance(res, dict) else None) or "?"
+        costo = res.get("costo") if isinstance(res, dict) else None
+        try:
+            from nucleo import telemetria
+            telemetria.registrar(nombre, modo, ms, ok, costo=costo, error=error)
+        except Exception:
+            pass
 
 
 # Descubrimiento inicial al importar el módulo.

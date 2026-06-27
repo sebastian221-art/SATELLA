@@ -83,4 +83,5 @@ def manejar(texto: str, contexto: dict = None) -> dict:
     costo = r.get("costo")
     nota = f"\n\n_(búsqueda en vivo vía Claude Code{f' · ${costo:.4f}' if costo else ''})_"
     return contrato.resultado(NOMBRE, "busqueda",
-                              f"busqué en internet: {consulta[:50]}", cuerpo + nota, ok=True)
+                              f"busqué en internet: {consulta[:50]}", cuerpo + nota,
+                              ok=True, costo=costo)

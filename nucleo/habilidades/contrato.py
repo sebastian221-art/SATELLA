@@ -26,9 +26,17 @@ import inspect
 CAMPOS_RESULTADO = ("ok", "skill", "modo", "resumen", "cuerpo")
 
 
-def resultado(skill: str, modo: str, resumen: str, cuerpo: str, ok: bool = True) -> dict:
-    """Helper para que cualquier habilidad arme un resultado válido."""
-    return {"ok": ok, "skill": skill, "modo": modo, "resumen": resumen, "cuerpo": cuerpo}
+def resultado(skill: str, modo: str, resumen: str, cuerpo: str, ok: bool = True, costo=None) -> dict:
+    """Helper para que cualquier habilidad arme un resultado válido.
+
+    `costo` es OPCIONAL: si la habilidad conoce lo que gastó (ej. lo que devuelve
+    Claude Code en total_cost_usd), lo pasa y queda registrado en la telemetría.
+    Si no, se omite del dict — backward-compatible con las skills que no lo traen.
+    """
+    r = {"ok": ok, "skill": skill, "modo": modo, "resumen": resumen, "cuerpo": cuerpo}
+    if costo is not None:
+        r["costo"] = costo
+    return r
 
 
 def validar(modulo) -> tuple:

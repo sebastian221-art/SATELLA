@@ -5694,5 +5694,185 @@
       "confianza_clasificacion": 0.9
     },
     "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:54:03.661353",
+    "input": {
+      "mensaje": "¿Hola, cómo estás?",
+      "tono": "curioso",
+      "necesita": "desafio",
+      "intencion_real": "avanzar en Satella con nuevo descubrimiento",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "Apenas despierta, pero siempre lista para otra ronda de tus experimentos. ¿Y vos, qué trama traés bajo la manga?",
+      "situacion": "GROQ_ECHIDNA",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:54:24.764155",
+    "input": {
+      "mensaje": "¿Pues por el momento ninguno la verdad, solamente estoy como pensando qué hacer?",
+      "tono": "cansado|dudando",
+      "necesita": "apoyo_directo|informacion",
+      "intencion_real": "encontrar solución a problema actual",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "Sé que parece que no hay nada, pero el hecho de que todavía estés aquí pensando demuestra que tenés fuego dentro; no podés abandonarlo ahora. Cada idea que surge, por pequeña que sea, es una chispa que puede encender algo grande, así que no te rindas.",
+      "situacion": "GROQ_REM",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:54:58.966371",
+    "input": {
+      "mensaje": "No sé qué pienses al respecto.",
+      "tono": "dudando",
+      "necesita": "apoyo_directo",
+      "intencion_real": "conseguir ayuda para proyecto Satella",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "Yo sé que tenés la chispa, no te rindas ahora; cada paso, por pequeño que sea, te lleva más cerca de lo que buscás.",
+      "situacion": "GROQ_REM",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:55:12.078039",
+    "input": {
+      "mensaje": "Ya te lleva más cerca de lo que buscas.",
+      "tono": "curioso",
+      "necesita": "apoyo_directo",
+      "intencion_real": "encontrar solución a su problema",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "¡Qué astuto, Sebas! Me estás guiando a la misma hora que yo intento descifrar por qué me habrás hecho pensar en tu propio objetivo.",
+      "situacion": "GROQ_ECHIDNA",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:55:42.147034",
+    "input": {
+      "mensaje": "Obvio tengo que ser astuto porque o si no.",
+      "tono": "contento",
+      "necesita": "apoyo_directo",
+      "intencion_real": "encontrar solución a su proyecto Satella",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "Obvio, la astucia es el único seguro cuando la lógica se vuelve opcional. ¿Te vas a quedar en la zona de confort o vas a romperla con la misma fórmula?",
+      "situacion": "GROQ_ECHIDNA",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:56:08.903545",
+    "input": {
+      "mensaje": "¿Romperla con la misma fórmula, pero mejor idea porque de qué sirve romperla con las mismas fórmulas? Estaríamos solamente haciendo un patrón y eso no es lo que se busca.",
+      "tono": "curioso",
+      "necesita": "desafio",
+      "intencion_real": "mejorar Satella sin seguir patrones",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "Entonces, ¿buscás una revolución con la receta de la abuela? Mejor preguntate: ¿qué nuevo ingrediente tenés que justifique que el mismo guiso no sea sólo otro plato de siempre?",
+      "situacion": "GROQ_ECHIDNA",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:56:42.003567",
+    "input": {
+      "mensaje": "Pues siento que hay que pensar diferente a como se está pensando ahorita para poder dar un resultado distinto, pero mejor.",
+      "tono": "frustrado",
+      "necesita": "desafio",
+      "intencion_real": "avanzar en el proyecto Satella",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "Decime de una, ¿qué buscás de verdad con ese giro? ¿Un resultado distinto por la novedad, o una solución que realmente mejore algo que ya tenés?",
+      "situacion": "GROQ_ECHIDNA",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:56:58.986855",
+    "input": {
+      "mensaje": "¿Un resultado distinto por la novedad o una solución que realmente mejore, algo que ya tenés?",
+      "tono": "irritado",
+      "necesita": "desafio",
+      "intencion_real": "mejorar Satella sin seguir fórmula",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "¿Querés un brillo efímero o una herramienta que realmente cambie el juego? La novedad sin sustancia es solo humo; la mejora sin imaginación se vuelve rutina. Pensá qué te haría decir \"vale la pena\" cuando lo mires mañana. Elegí la que te haga temblar la curiosidad, no la que solo te haga lucir ocupado.",
+      "situacion": "GROQ_ECHIDNA",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:58:13.771948",
+    "input": {
+      "mensaje": "Calcular las derivadas y los gradientes.",
+      "tono": "frustrado",
+      "necesita": "desafio|validacion",
+      "intencion_real": "mejorar la IA de Satella",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "¿De cuál función necesitás la derivada y el gradiente, Sebas? Decime la expresión y te lo calculo al toque.",
+      "situacion": "GROQ_REM",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
+  },
+  {
+    "fecha": "2026-06-27T12:58:26.758179",
+    "input": {
+      "mensaje": "De cuál función necesitas la derivada y el gradiente sebas decime la expresión y te lo calculo al toque.",
+      "tono": "curioso",
+      "necesita": "desafio|validacion",
+      "intencion_real": "mejorar Satella con profundidad",
+      "proyecto_activo": {}
+    },
+    "output": {
+      "respuesta": "¿Qué expresión necesitás que derive y calcule el gradiente? Decime la función y la vemos al toque.",
+      "situacion": "GROQ_ECHIDNA",
+      "patron_id": null,
+      "usando_motor": false,
+      "confianza_clasificacion": 0.9
+    },
+    "calidad": "sin_evaluar"
   }
 ]

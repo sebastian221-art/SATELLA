@@ -58,7 +58,8 @@ def _ejecutar_paso(paso, contexto, previos):
     if skill is not None:
         try:
             ctx = _contexto_con_previos(contexto, previos)
-            res = skill.manejar(paso, ctx)
+            from nucleo.habilidades import registro
+            res = registro.ejecutar(skill, paso, ctx)
             return {"paso": paso, "skill": getattr(skill, "NOMBRE", "?"),
                     "cuerpo": res.get("cuerpo", ""), "ok": res.get("ok", True)}
         except Exception as e:
