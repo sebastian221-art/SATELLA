@@ -29,9 +29,9 @@ _PAQUETE = "nucleo.habilidades"
 # 'agente_codigo' va ANTES que 'copia', 'analisis' y 'python': una MISIÓN sobre
 # un proyecto (o un "cloná …") la toma el agente, no el analizador ni la skill
 # de código suelta. Un snippet suelto ("escribime una función") sigue yendo a 'python'.
-_PRIORIDAD = ["gobernador", "navegador", "creador", "mezclador", "planificador",
+_PRIORIDAD = ["gobernador", "agentes", "navegador", "creador", "mezclador", "planificador",
               "agente_cc", "agente_codigo", "copia", "analisis", "sistema", "agenda",
-              "telemetria", "busqueda", "python"]
+              "introspeccion", "ingestor", "telemetria", "busqueda", "python"]
 
 _SKILLS = []
 

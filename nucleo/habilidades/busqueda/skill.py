@@ -34,14 +34,25 @@ def detecta(texto: str, codigo_adjunto: str = "") -> bool:
     return detector.es_busqueda(texto, codigo_adjunto)
 
 
+try:
+    from config import UBICACION_USUARIO
+except Exception:
+    UBICACION_USUARIO = "Colombia (Bucaramanga, Santander)"
+
+
 def _prompt(consulta: str) -> str:
     return (
         "Sos el módulo de investigación de Satella. Buscá en internet información "
         f"ACTUAL y confiable para responder: «{consulta}».\n\n"
+        f"IMPORTANTE — el usuario está en {UBICACION_USUARIO}. Salvo que la consulta "
+        "mencione explícitamente otro país, asumí contexto LOCAL: priorizá fuentes, "
+        "moneda y datos de ese país. Si se trata de dinero/precios (ej. «el dólar»), "
+        "es el valor en la moneda local (para Colombia, el peso colombiano / COP), "
+        "NUNCA de Argentina, México u otro país.\n\n"
         "Hacé lo siguiente:\n"
-        "1. Buscá en la web con WebSearch.\n"
+        "1. Buscá en la web con WebSearch (incluí el país en la búsqueda si aplica).\n"
         "2. Abrí las fuentes más confiables y recientes con WebFetch para confirmar.\n"
-        "3. Respondé en español rioplatense (voseo), conciso y directo, sin relleno.\n"
+        "3. Respondé en español (voseo), conciso y directo, sin relleno.\n"
         "4. Citá las fuentes (nombre del sitio) de donde sacaste cada dato clave.\n"
         "5. Si las fuentes se contradicen o no hay info confiable, decilo honestamente; "
         "no inventes ni rellenes.\n"

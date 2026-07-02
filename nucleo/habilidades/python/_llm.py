@@ -45,19 +45,34 @@ def modelo() -> str:
 
 
 def chat(prompt: str, max_tokens: int = 1600, temperature: float = 0.3,
-         system: str = "Sos un ingeniero de software senior. Preciso, directo, en español (voseo).") -> str:
+         system: str = "Sos un ingeniero de software senior. Preciso, directo, en español (voseo).",
+         reasoning_effort: str = None) -> str:
     if not _ok:
         return ""
+    kwargs = dict(
+        model=_MODEL,
+        messages=[{"role": "system", "content": system},
+                  {"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    # Modelos de razonamiento (ej. gpt-oss): pedirles que razonen poco deja tokens
+    # para la respuesta. Si la versión de Groq no acepta el parámetro, reintentamos
+    # sin él (el except de abajo).
+    if reasoning_effort:
+        kwargs["reasoning_effort"] = reasoning_effort
     try:
-        resp = _client.chat.completions.create(
-            model=_MODEL,
-            messages=[{"role": "system", "content": system},
-                      {"role": "user", "content": prompt}],
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
-        return resp.choices[0].message.content.strip()
+        resp = _client.chat.completions.create(**kwargs)
+        return (resp.choices[0].message.content or "").strip()
     except Exception as e:
+        if reasoning_effort:
+            try:
+                kwargs.pop("reasoning_effort", None)
+                resp = _client.chat.completions.create(**kwargs)
+                return (resp.choices[0].message.content or "").strip()
+            except Exception as e2:
+                log.error(f"[PY] Groq falló (sin reasoning_effort): {e2}")
+                return ""
         log.error(f"[PY] Groq falló: {e}")
         return ""
 

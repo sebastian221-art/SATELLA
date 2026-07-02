@@ -91,16 +91,29 @@ def conectar(a: str, b: str, rel: str = "se relaciona con", peso: int = 1):
             _aristas[x][y] = {"rel": rel, "peso": peso}
 
 
-def ingerir(extraccion: dict, guardar: bool = True):
-    """Mete en el grafo lo extraído de una sesión: conceptos + relaciones."""
+def _canon_alias(nombre: str) -> str:
+    """Canonicaliza un nombre por el mapa de alias de HDC (browser→navegador).
+    Si HDC no está o no hay alias, devuelve el nombre tal cual. Nunca rompe."""
+    try:
+        from nucleo import hdc
+        return hdc.resolver_alias(nombre) or nombre
+    except Exception:
+        return nombre
+
+
+def ingerir(extraccion: dict, guardar: bool = True, canonicalizar: bool = False):
+    """Mete en el grafo lo extraído: conceptos + relaciones.
+    canonicalizar=True (lo usa el ingestor) pasa cada nombre por el alias de HDC
+    ANTES de crear el nodo, así 'browser' y 'navegador' no quedan como dos islas."""
+    canon = _canon_alias if canonicalizar else (lambda x: x)
     for c in extraccion.get("conceptos", []):
         if isinstance(c, dict):
-            agregar_concepto(c.get("nombre", ""), c.get("tipo", "concepto"))
+            agregar_concepto(canon(c.get("nombre", "")), c.get("tipo", "concepto"))
         elif isinstance(c, str):
-            agregar_concepto(c)
+            agregar_concepto(canon(c))
     for r in extraccion.get("relaciones", []):
         if isinstance(r, dict) and r.get("a") and r.get("b"):
-            conectar(r["a"], r["b"], r.get("rel", "se relaciona con"))
+            conectar(canon(r["a"]), canon(r["b"]), r.get("rel", "se relaciona con"))
     if guardar:
         _guardar()
 
@@ -207,34 +220,61 @@ Respondé SOLO JSON, sin texto afuera:
 Máximo 10 conceptos y 10 relaciones, los más importantes. Usá nombres concretos y consistentes."""
 
 
-def extraer(texto: str) -> dict:
-    """Usa Groq para sacar conceptos+relaciones de un texto de sesión."""
+def _parsear_extraccion(salida: str) -> dict:
+    """Saca {conceptos, relaciones} de la salida del modelo, robusto a modelos de
+    razonamiento que escupen texto o llaves antes/después del JSON real. Prueba
+    todos los bloques {...} balanceados, del más largo al más corto."""
     vacio = {"conceptos": [], "relaciones": []}
-    if not texto or not texto.strip():
+    if not salida:
         return vacio
+    s = re.sub(r"```json|```", "", salida)
+    s = re.sub(r"<think>.*?</think>", "", s, flags=re.DOTALL)
+    s = re.sub(r"<\|.*?\|>", "", s, flags=re.DOTALL)
+    spans, pila = [], []
+    for idx, ch in enumerate(s):
+        if ch == "{":
+            pila.append(idx)
+        elif ch == "}" and pila:
+            spans.append(s[pila.pop():idx + 1])
+    for cand in sorted(set(spans), key=len, reverse=True):
+        try:
+            obj = json.loads(cand)
+            if isinstance(obj, dict) and ("conceptos" in obj or "relaciones" in obj):
+                return {"conceptos": obj.get("conceptos", []),
+                        "relaciones": obj.get("relaciones", [])}
+        except Exception:
+            continue
+    return vacio
+
+
+def extraer_generico(prompt_completo: str) -> dict:
+    """Llama al modelo con un prompt YA armado y devuelve {conceptos, relaciones}.
+    Robusto a modelos de razonamiento (ej. gpt-oss): les da presupuesto de tokens
+    suficiente y les pide razonar poco, así no se quedan sin tokens para responder
+    (ese era el bug que tenía a Coral en 0 — el modelo devolvía vacío)."""
+    vacio = {"conceptos": [], "relaciones": []}
     try:
         from nucleo.habilidades.python import _llm
     except Exception:
         return vacio
     if not _llm.disponible():
         return vacio
-    try:
-        salida = _llm.chat(_PROMPT_EXTRAER.format(texto=texto[:3000]),
-                           max_tokens=700, temperature=0.2)
-    except Exception as e:
-        log.error(f"Coral: extracción falló: {e}")
-        return vacio
-    if not salida:
-        return vacio
-    s = salida.replace("```json", "").replace("```", "").strip()
-    i, j = s.find("{"), s.rfind("}")
-    if i == -1 or j == -1:
-        return vacio
-    try:
-        obj = json.loads(s[i:j + 1])
-        return {"conceptos": obj.get("conceptos", []), "relaciones": obj.get("relaciones", [])}
-    except Exception:
-        return vacio
+    # 1er intento: razonamiento bajo + buen presupuesto.
+    salida = _llm.chat(prompt_completo, max_tokens=2500, temperature=0.2,
+                       reasoning_effort="low")
+    res = _parsear_extraccion(salida)
+    if res["conceptos"] or res["relaciones"]:
+        return res
+    # 2do intento: aún más tokens, por si el razonamiento se comió el presupuesto.
+    salida = _llm.chat(prompt_completo, max_tokens=4000, temperature=0.2)
+    return _parsear_extraccion(salida)
+
+
+def extraer(texto: str) -> dict:
+    """Usa Groq para sacar conceptos+relaciones de un texto de sesión."""
+    if not texto or not texto.strip():
+        return {"conceptos": [], "relaciones": []}
+    return extraer_generico(_PROMPT_EXTRAER.format(texto=texto[:3000]))
 
 
 def aprender_de_sesion(texto: str) -> dict:

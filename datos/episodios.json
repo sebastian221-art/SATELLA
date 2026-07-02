@@ -721,5 +721,80 @@
     "aprendi": "validar datos previene errores críticos",
     "fecha": "2026-06-27T14:12:08.825926",
     "turnos": 18
+  },
+  {
+    "tema_principal": "edad negativa",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "Corregir registro de edad",
+      "Revisar validaciones de rango"
+    ],
+    "aprendi": "Validar rangos evita errores",
+    "fecha": "2026-06-27T16:33:47.736298",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "edad negativa",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "corregir edad negativa en pantalla"
+    ],
+    "aprendi": "cuidado con signos",
+    "fecha": "2026-06-27T16:38:11.024475",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "números negativos",
+    "estado_sebastian": "dudando",
+    "proyecto_activo": "Satella",
+    "pendientes": [],
+    "aprendi": "los números pueden ser negativos",
+    "fecha": "2026-06-27T16:45:28.434382",
+    "turnos": 1
+  },
+  {
+    "tema_principal": "números negativos",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "ambos",
+    "pendientes": [],
+    "aprendi": "conceptos de números negativos",
+    "fecha": "2026-06-27T17:14:32.360540",
+    "turnos": 4
+  },
+  {
+    "tema_principal": "números negativos",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "resolver resta de -3",
+      "convertir -7 a +3"
+    ],
+    "aprendi": "restar negativos puede dar positivos",
+    "fecha": "2026-06-28T06:03:44.531879",
+    "turnos": 11
+  },
+  {
+    "tema_principal": "números negativos",
+    "estado_sebastian": "frustrado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "aplicar transformación a datos reales"
+    ],
+    "aprendi": "convertir negativos en positivos",
+    "fecha": "2026-06-28T12:17:28.636574",
+    "turnos": 13
+  },
+  {
+    "tema_principal": "agentes programados",
+    "estado_sebastian": "enfocado",
+    "proyecto_activo": "Satella",
+    "pendientes": [
+      "revisar qué sabe Satella de PSI"
+    ],
+    "aprendi": "solo hay un agente programado",
+    "fecha": "2026-06-28T13:46:48.685926",
+    "turnos": 5
   }
 ]

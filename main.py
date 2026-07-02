@@ -28,11 +28,19 @@ def main():
     log.info("Cargando memoria...")
     from nucleo import memoria
     memoria.inicializar()
-    from nucleo import coral, hdc, agenda, telemetria
+    from nucleo import coral, hdc, agenda, telemetria, ingestor
     hdc.inicializar()
     coral.inicializar()
     agenda.inicializar()
     telemetria.inicializar()
+    ingestor.inicializar()
+    try:
+        from nucleo.agentes import plantel, programador, bandeja
+        plantel.inicializar()
+        programador.inicializar()
+        bandeja.inicializar()
+    except Exception as _e:
+        pass
 
     log.info("Cargando RAG...")
     from nucleo import rag
